@@ -6,6 +6,7 @@ declare var html2canvas: any;
 declare var jspdf: any;
 
 type ActiveTab = 'counter' | 'billing' | 'gst';
+type Theme = 'light' | 'dark';
 
 const CURRENCY_DATA = [
     { id: 'note-500', value: 500, isCoin: false, type: 'Note', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/25/India_new_500_INR%2C_obverse.jpg/640px-India_new_500_INR%2C_obverse.jpg' },
@@ -75,6 +76,10 @@ const GstIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6
 const LogoutIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>;
 const TrashIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>;
 const CloseIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>;
+const MenuIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>;
+const UserIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>;
+const ThemeIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>;
+const FeedbackIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>;
 
 
 // =====================================================================================
@@ -498,12 +503,73 @@ const LoginScreen: React.FC<{ onLogin: (name: string) => void }> = ({ onLogin })
 
 
 // =====================================================================================
+// --- FEEDBACK MODAL COMPONENT ---
+// =====================================================================================
+const FeedbackModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+    const [feedback, setFeedback] = useState('');
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (feedback.trim()) {
+            alert("Thank you for your feedback!");
+            onClose();
+        } else {
+            alert("Please enter your feedback before submitting.");
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={onClose}>
+            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+                <div className="p-4 border-b dark:border-slate-700 flex justify-between items-center">
+                    <h2 className="text-lg font-bold">Submit Feedback</h2>
+                    <button onClick={onClose} className="p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700"><CloseIcon /></button>
+                </div>
+                <form onSubmit={handleSubmit} className="p-4 space-y-4">
+                    <textarea
+                        value={feedback}
+                        onChange={e => setFeedback(e.target.value)}
+                        placeholder="Tell us what you think..."
+                        className="w-full h-32 p-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
+                        autoFocus
+                    ></textarea>
+                    <button type="submit" className="w-full py-2 bg-indigo-600 text-white font-semibold rounded-lg">Submit</button>
+                </form>
+            </div>
+        </div>
+    );
+};
+
+
+// =====================================================================================
 // --- MAIN APP COMPONENT ---
 // =====================================================================================
 const App: React.FC = () => {
     const [activeTab, setActiveTab] = useState<ActiveTab>('counter');
     const [userName, setUserName] = useLocalStorage<string | null>('userName', null);
+    const [theme, setTheme] = useLocalStorage<Theme>('theme', 'light');
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
+    const menuRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (theme === 'dark') {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    }, [theme]);
     
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+                setIsMenuOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
     const TAB_DATA = {
         counter: { title: 'Currency Counter', component: <CashCounter />, icon: <CounterIcon /> },
         billing: { title: 'Billing', component: <Billing />, icon: <BillingIcon /> },
@@ -519,17 +585,39 @@ const App: React.FC = () => {
             setUserName(null);
         }
     };
+    
+    const toggleTheme = () => {
+        setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
+    };
 
     return (
         <div className="min-h-screen bg-slate-100 dark:bg-gradient-to-b from-slate-900 to-gray-900 text-slate-800 dark:text-slate-100 font-sans flex flex-col">
-            <header className="bg-gradient-to-r from-purple-600 to-indigo-700 text-white p-4 shadow-lg sticky top-0 z-10 flex justify-between items-center">
+            <header className="bg-gradient-to-r from-purple-600 to-indigo-700 text-white p-4 shadow-lg sticky top-0 z-30 flex justify-between items-center">
                 <div>
                     <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight">{TAB_DATA[activeTab].title}</h1>
-                    <p className="text-xs opacity-80">Welcome, {userName}!</p>
                 </div>
-                <button onClick={handleLogout} className="flex items-center gap-2 p-2 text-sm bg-white/10 rounded-lg hover:bg-white/20 transition-colors">
-                    <LogoutIcon/> Logout
-                </button>
+                <div className="relative" ref={menuRef}>
+                    <button onClick={() => setIsMenuOpen(prev => !prev)} className="p-2 rounded-full hover:bg-white/20 transition-colors">
+                        <MenuIcon />
+                    </button>
+                    {isMenuOpen && (
+                        <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-md shadow-lg py-1 z-40 text-slate-700 dark:text-slate-200">
+                            <div className="px-4 py-2 border-b dark:border-slate-700">
+                                <p className="text-sm font-semibold">My Account</p>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{userName}</p>
+                            </div>
+                            <button onClick={toggleTheme} className="w-full text-left px-4 py-2 text-sm flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-700">
+                                <ThemeIcon /> Change Theme
+                            </button>
+                            <button onClick={() => { setIsFeedbackModalOpen(true); setIsMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-700">
+                                <FeedbackIcon /> Feedback
+                            </button>
+                            <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-sm flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-700 text-red-600 dark:text-red-400">
+                                <LogoutIcon /> Logout
+                            </button>
+                        </div>
+                    )}
+                </div>
             </header>
             
             <main className="flex-grow">
@@ -548,6 +636,8 @@ const App: React.FC = () => {
                     )
                 })}
             </nav>
+            
+            {isFeedbackModalOpen && <FeedbackModal onClose={() => setIsFeedbackModalOpen(false)} />}
         </div>
     );
 };
