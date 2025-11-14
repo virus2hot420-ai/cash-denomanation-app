@@ -1,32 +1,84 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
 
-// --- TYPE DEFINITIONS & THIRD-PARTY DECLARATIONS ---
+
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { initializeApp } from 'firebase/app';
+import {
+    getAuth,
+    onAuthStateChanged,
+    GoogleAuthProvider,
+    signInWithPopup,
+    signInWithEmailAndPassword,
+    createUserWithEmailAndPassword,
+    signOut,
+    signInAnonymously,
+    User
+} from 'firebase/auth';
+import {
+    getFirestore,
+    doc,
+    getDoc,
+    setDoc,
+    addDoc,
+    collection,
+    query,
+    orderBy,
+    limit,
+    getDocs,
+    collectionGroup,
+    serverTimestamp,
+    Timestamp
+} from 'firebase/firestore';
+
+
+// --- TYPE DEFINITIONS & THIRD-PARTY DECLARations ---
 declare var html2canvas: any;
 declare var jspdf: any;
-declare var firebase: any;
 
 type ActiveTab = 'counter' | 'billing' | 'gst' | 'admin';
 type Theme = 'light' | 'dark';
+interface BillItem { id: number; name: string; qty: number; price: number; }
+interface CashHistoryEntry {
+    id: string;
+    date: Timestamp;
+    totalAmount: number;
+    totalNotes: number;
+    counts: { [key: string]: string };
+    expectedAmount: string;
+}
 
 // --- FIREBASE SETUP ---
-// IMPORTANT: Replace this with your own Firebase project's configuration.
-// Go to your Firebase project's settings, find "Your apps", and copy the config object here.
+// This has been updated with your project's configuration.
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyBA_sDtqblWEbnZptNf9nTe12LMkBBilHY",
+  authDomain: "cash-denomenation.firebaseapp.com",
+  projectId: "cash-denomenation",
+  storageBucket: "cash-denomenation.firebasestorage.app",
+  messagingSenderId: "1097944210180",
+  appId: "1:1097944210180:web:851fea555fad8889b6ce51",
+  measurementId: "G-KG5W9F34L5"
 };
 
-// Initialize Firebase
-if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-}
-const auth = firebase.auth();
-const db = firebase.firestore();
-const googleProvider = new firebase.auth.GoogleAuthProvider();
+// Initialize Firebase using the v9 modular SDK
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const googleProvider = new GoogleAuthProvider();
+
+// NOTE on Firestore Security Rules:
+// For this app to be secure, you MUST set up Firestore Security Rules.
+// Example rules:
+// service cloud.firestore {
+//   match /databases/{database}/documents {
+//     // Users can only read/write their own data
+//     match /users/{userId}/{document=**} {
+//       allow read, write: if request.auth.uid == userId;
+//     }
+//     // Anyone authenticated can submit feedback
+//     match /feedback/{feedbackId} {
+//       allow create: if request.auth != null;
+//     }
+//   }
+// }
 
 const CURRENCY_DATA = [
     { id: 'note-500', value: 500, type: 'Note', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/India_new_500_INR%2C_Mahatma_Gandhi_New_Series%2C_2016%2C_obverse.png/320px-India_new_500_INR%2C_Mahatma_Gandhi_New_Series%2C_2016%2C_obverse.png' },
@@ -36,7 +88,13 @@ const CURRENCY_DATA = [
     { id: 'note-20', value: 20, type: 'Note', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/India_new_20_INR%2C_Mahatma_Gandhi_New_Series%2C_2019%2C_obverse.png/320px-India_new_20_INR%2C_Mahatma_Gandhi_New_Series%2C_2019%2C_obverse.png' },
     { id: 'note-10', value: 10, type: 'Note', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/89/India_new_10_INR%2C_Mahatma_Gandhi_New_Series%2C_2018%2C_obverse.png/320px-India_new_10_INR%2C_Mahatma_Gandhi_New_Series%2C_2018%2C_obverse.png' },
     { id: 'note-5', value: 5, type: 'Note', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/India_5_INR%2C_MG_series%2C_2002%2C_obverse.png/320px-India_5_INR%2C_MG_series%2C_2002%2C_obverse.png'},
+    { id: 'coin-10', value: 10, type: 'Coin', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/India-10-Rupee-coin-2019-observe.png/240px-India-10-Rupee-coin-2019-observe.png' },
+    { id: 'coin-5', value: 5, type: 'Coin', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/India-5-Rupee-coin-2019-observe.png/240px-India-5-Rupee-coin-2019-observe.png' },
+    { id: 'coin-2', value: 2, type: 'Coin', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d1/India-2-Rupee-coin-2019-observe.png/240px-India-2-Rupee-coin-2019-observe.png' },
+    { id: 'coin-1', value: 1, type: 'Coin', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/91/India-1-Rupee-coin-2019-observe.png/240px-India-1-Rupee-coin-2019-observe.png' },
 ];
+const NOTES = CURRENCY_DATA.filter(d => d.type === 'Note').sort((a, b) => b.value - a.value);
+const COINS = CURRENCY_DATA.filter(d => d.type === 'Coin').sort((a, b) => b.value - a.value);
 
 // IMPORTANT: Set the email of the admin user here.
 const ADMIN_EMAIL = "admin@example.com";
@@ -147,44 +205,48 @@ const SplashScreen: React.FC = () => (
 // =====================================================================================
 // --- CASH COUNTER COMPONENT ---
 // =====================================================================================
-const CashCounter: React.FC<{ user: any }> = ({ user }) => {
+const CashCounter: React.FC<{ user: User }> = ({ user }) => {
     const [counts, setCounts] = useState<{ [key: string]: string }>({});
-    const [history, setHistory] = useState<any[]>([]);
+    const [history, setHistory] = useState<CashHistoryEntry[]>([]);
     const [showHistory, setShowHistory] = useState(false);
     const [expectedAmount, setExpectedAmount] = useState('');
     const [isSummaryOpen, setIsSummaryOpen] = useState(false);
     const [expandedHistory, setExpandedHistory] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
 
-    const userStateRef = db.collection('users').doc(user.uid).collection('appState').doc('cashCounter');
-    const historyRef = db.collection('users').doc(user.uid).collection('cashCounterHistory');
+    const userStateRef = useMemo(() => doc(db, 'users', user.uid, 'appState', 'cashCounter'), [user.uid]);
+    const historyRef = useMemo(() => collection(db, 'users', user.uid, 'cashCounterHistory'), [user.uid]);
 
     useEffect(() => {
-        // Fetch initial state and history from Firestore
         const fetchData = async () => {
             setLoading(true);
-            // Fetch saved state
-            const stateDoc = await userStateRef.get();
-            if (stateDoc.exists) {
-                const data = stateDoc.data();
-                setCounts(data?.counts || {});
-                setExpectedAmount(data?.expectedAmount || '');
+            try {
+                // Fetch saved state
+                const stateDocSnap = await getDoc(userStateRef);
+                if (stateDocSnap.exists()) {
+                    const data = stateDocSnap.data();
+                    setCounts(data?.counts || {});
+                    setExpectedAmount(data?.expectedAmount || '');
+                }
+                // Fetch history
+                const historyQuery = query(historyRef, orderBy('date', 'desc'), limit(50));
+                const historySnapshot = await getDocs(historyQuery);
+                setHistory(historySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CashHistoryEntry)));
+            } catch (error) {
+                console.error("Error fetching user data:", error);
+            } finally {
+                setLoading(false);
             }
-            // Fetch history
-            const historySnapshot = await historyRef.orderBy('date', 'desc').limit(50).get();
-            setHistory(historySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-            setLoading(false);
         };
         fetchData();
-    }, [user.uid]);
+    }, [user.uid, userStateRef, historyRef]);
     
-    // Save current counts to Firestore periodically or on change
     useEffect(() => {
         const handler = setTimeout(() => {
-            userStateRef.set({ counts, expectedAmount }, { merge: true });
-        }, 1000); // Debounce saving
+             setDoc(userStateRef, { counts, expectedAmount }, { merge: true });
+        }, 1000);
         return () => clearTimeout(handler);
-    }, [counts, expectedAmount]);
+    }, [counts, expectedAmount, userStateRef]);
 
     const handleCountChange = (id: string, newCount: string) => {
         if (/^\d*$/.test(newCount)) {
@@ -192,15 +254,15 @@ const CashCounter: React.FC<{ user: any }> = ({ user }) => {
         }
     };
     
-    const { totalAmount, totalNotes } = useMemo(() => {
+    const { totalAmount, totalNotesAndCoins } = useMemo(() => {
         return CURRENCY_DATA.reduce((acc, denom) => {
             const count = parseInt(counts[denom.id] || '0', 10);
             if (count > 0) {
                 acc.totalAmount += denom.value * count;
-                acc.totalNotes += count;
+                acc.totalNotesAndCoins += count;
             }
             return acc;
-        }, { totalAmount: 0, totalNotes: 0 });
+        }, { totalAmount: 0, totalNotesAndCoins: 0 });
     }, [counts]);
 
     const difference = useMemo(() => {
@@ -214,13 +276,15 @@ const CashCounter: React.FC<{ user: any }> = ({ user }) => {
     const handleSave = async () => {
         if (totalAmount > 0) {
             const newEntry = {
-                date: new Date().toISOString(),
-                userEmail: user.email,
-                totalAmount, totalNotes, counts, expectedAmount,
+                date: serverTimestamp(),
+                userEmail: user.isAnonymous ? 'Guest' : user.email,
+                totalAmount, totalNotes: totalNotesAndCoins, counts, expectedAmount,
             };
             try {
-                const docRef = await historyRef.add(newEntry);
-                setHistory([{ id: docRef.id, ...newEntry }, ...history]);
+                const docRef = await addDoc(historyRef, newEntry);
+                // Optimistically update UI
+                const tempNewEntry = { ...newEntry, id: docRef.id, date: new Timestamp(Date.now()/1000, 0) } as CashHistoryEntry;
+                setHistory([tempNewEntry, ...history]);
                 alert('Count saved to history!');
             } catch (error) {
                 console.error("Error saving to Firestore: ", error);
@@ -229,456 +293,457 @@ const CashCounter: React.FC<{ user: any }> = ({ user }) => {
         }
     };
     
-    const generateShareText = () => {
-        // ... (share text logic remains the same)
-        return `Shared by ${user.displayName || user.email}`;
+    const generateShareText = (entry: any) => {
+        let text = `Cash Count Summary:\n`;
+        text += `Total Amount: ₹${entry.totalAmount.toLocaleString('en-IN')}\n`;
+        text += `Total Notes/Coins: ${entry.totalNotes}\n\n`;
+        text += 'Denomination Breakdown:\n';
+        CURRENCY_DATA.forEach(denom => {
+            const count = parseInt(entry.counts[denom.id] || '0', 10);
+            if (count > 0) {
+                text += `₹${denom.value} × ${count} = ₹${(denom.value * count).toLocaleString('en-IN')}\n`;
+            }
+        });
+         text += `\nShared by ${user.isAnonymous ? 'a Guest User' : (user.displayName || user.email)}`;
+        return text;
     };
 
     const handleShare = () => {
-        // ... (share logic remains the same)
+        const textToShare = generateShareText({ totalAmount, totalNotes: totalNotesAndCoins, counts });
+        if (navigator.share) {
+            navigator.share({ title: 'Cash Count Summary', text: textToShare });
+        } else {
+            navigator.clipboard.writeText(textToShare);
+            alert('Summary copied to clipboard!');
+        }
     };
     
     const generateSingleEntryPdf = (entry: any) => {
-        // ... (PDF generation logic remains the same)
+        const { jsPDF } = jspdf;
+        const doc = new jsPDF();
+        doc.setFontSize(20);
+        doc.text("Cash Count Summary", 105, 15, null, null, "center");
+        doc.setFontSize(12);
+        doc.text(`Date: ${entry.date.toDate().toLocaleString('en-IN')}`, 15, 25);
+        doc.text(`User: ${user.isAnonymous ? 'Guest' : user.email}`, 15, 32);
+
+        doc.autoTable({
+            startY: 40,
+            head: [['Denomination', 'Count', 'Amount']],
+            body: CURRENCY_DATA.map(denom => {
+                const count = parseInt(entry.counts[denom.id] || '0', 10);
+                return [ `₹ ${denom.value}`, count, `₹ ${(denom.value * count).toLocaleString('en-IN')}`];
+            }).filter(row => (row[1] as number) > 0),
+            foot: [
+                ['Total', entry.totalNotes, `₹ ${entry.totalAmount.toLocaleString('en-IN')}`]
+            ],
+            theme: 'grid',
+            headStyles: { fillColor: [76, 5, 255] }
+        });
+        addWatermark(doc);
+        doc.save(`cash-summary-${new Date().toISOString().split('T')[0]}.pdf`);
     };
 
-    const generateHistoryPdf = () => {
-        // ... (PDF generation logic remains the same)
-    };
+    const DenominationRow = ({ denom }: { denom: typeof CURRENCY_DATA[0] }) => (
+        <div key={denom.id} className="grid grid-cols-12 gap-2 items-center px-4 py-2">
+            <div className="col-span-4 flex items-center gap-3">
+                <img src={denom.imageUrl} alt={`₹ ${denom.value}`} className={`object-contain ${denom.type === 'Note' ? 'w-24 h-12' : 'w-10 h-10'}`}/>
+                <span className="font-semibold text-slate-700 dark:text-slate-200 hidden sm:inline">{denom.type}</span>
+            </div>
+            <div className="col-span-3 flex items-center justify-center gap-2">
+                <span className="text-xl font-medium text-slate-500 dark:text-slate-400">×</span>
+                <input type="text" inputMode="numeric" pattern="\d*" value={counts[denom.id] || ''} onChange={(e) => handleCountChange(denom.id, e.target.value)} placeholder="0" className="w-full text-center text-xl font-bold rounded-lg p-2 bg-slate-100 dark:bg-slate-700 border-2 border-slate-300 dark:border-slate-600 focus:ring-2 focus:ring-violet-500"/>
+            </div>
+            <div className="col-span-5 text-right text-lg font-semibold text-violet-600 dark:text-violet-400 truncate">
+                ₹{(denom.value * (parseInt(counts[denom.id] || '0', 10))).toLocaleString('en-IN')}
+            </div>
+        </div>
+    );
 
     if (loading) return <div className="text-center p-10">Loading your data...</div>;
     
     return (
         <div className="flex-grow container mx-auto p-2 sm:p-4 pb-24">
-            {/* The rest of the CashCounter JSX is largely the same, only data source has changed */}
             {showHistory ? (
                  <div>
                     <div className="flex justify-between items-center mb-4">
                         <h2 className="text-xl font-bold">Counter History</h2>
-                        <div className="flex gap-2">
-                             <button onClick={generateHistoryPdf} className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm sm:text-base">Export All PDF</button>
-                             <button onClick={() => setShowHistory(false)} className="px-4 py-2 bg-slate-600 text-white rounded-lg text-sm sm:text-base">Back to Counter</button>
-                        </div>
+                        <button onClick={() => setShowHistory(false)} className="px-4 py-2 bg-slate-600 text-white rounded-lg text-sm sm:text-base">Back to Counter</button>
                     </div>
                     <div className="space-y-2">
-                        {history.length > 0 ? history.map(h => (
-                            <div key={h.id} className="bg-white dark:bg-slate-800 rounded-lg shadow-md overflow-hidden transition-all">
-                                <div className="p-3 flex justify-between items-center cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700" onClick={() => setExpandedHistory(expandedHistory === h.id ? null : h.id)}>
+                        {history.length > 0 ? history.map(entry => (
+                            <div key={entry.id} className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-4">
+                                <div className="flex justify-between items-center cursor-pointer" onClick={() => setExpandedHistory(expandedHistory === entry.id ? null : entry.id)}>
                                     <div>
-                                        <p className="font-semibold">{new Date(h.date).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</p>
-                                        <p className="text-slate-600 dark:text-slate-300">Total: <span className="font-bold text-violet-600 dark:text-violet-400">₹{(h.totalAmount || 0).toLocaleString('en-IN')}</span></p>
+                                        <p className="font-semibold text-slate-800 dark:text-slate-200">{entry.date.toDate().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</p>
+                                        <p className="text-lg font-bold text-violet-600 dark:text-violet-400">₹{entry.totalAmount.toLocaleString('en-IN')}</p>
                                     </div>
-                                    <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 transition-transform ${expandedHistory === h.id ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
-                                </div>
-                                {expandedHistory === h.id && (
-                                    <div className="p-4 border-t border-slate-200 dark:border-slate-700 space-y-3 bg-slate-50 dark:bg-slate-800/50">
-                                        <div className="grid grid-cols-3 gap-2 text-sm text-center">
-                                             {CURRENCY_DATA.map(denom => {
-                                                const count = parseInt(h.counts[denom.id] || '0', 10);
-                                                return count > 0 ? <div key={denom.id} className="bg-slate-200 dark:bg-slate-700 p-1 rounded">₹{denom.value} &times; {count}</div> : null;
-                                            })}
-                                        </div>
-                                        <button onClick={() => generateSingleEntryPdf(h)} className="w-full flex items-center justify-center gap-2 mt-2 px-4 py-2 bg-violet-600 text-white rounded-lg font-semibold hover:bg-violet-700">
+                                    <div className="flex items-center gap-2">
+                                        <button onClick={(e) => { e.stopPropagation(); generateSingleEntryPdf(entry); }} className="p-2 text-slate-500 hover:text-violet-600 dark:hover:text-violet-400" aria-label="Download PDF">
                                             <DownloadIcon />
-                                            Download PDF
                                         </button>
+                                        <svg className={`w-5 h-5 transition-transform ${expandedHistory === entry.id ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                {expandedHistory === entry.id && (
+                                    <div className="mt-4 border-t border-slate-200 dark:border-slate-700 pt-4">
+                                        <h4 className="font-semibold mb-2">Details:</h4>
+                                        <div className="text-sm space-y-1">
+                                            {entry.expectedAmount && parseFloat(entry.expectedAmount) > 0 && <p>Expected: ₹{parseFloat(entry.expectedAmount).toLocaleString('en-IN')}</p>}
+                                            {entry.expectedAmount && parseFloat(entry.expectedAmount) > 0 && <p className={ (entry.totalAmount - parseFloat(entry.expectedAmount)) >= 0 ? 'text-green-500' : 'text-red-500'}>
+                                                Difference: ₹{(entry.totalAmount - parseFloat(entry.expectedAmount)).toLocaleString('en-IN')}
+                                            </p>}
+                                            <p>Total Notes/Coins: {entry.totalNotes}</p>
+                                        </div>
+                                        <h4 className="font-semibold mt-4 mb-2">Breakdown:</h4>
+                                        <ul className="text-sm space-y-1">
+                                            {CURRENCY_DATA.map(denom => {
+                                                const count = parseInt(entry.counts[denom.id] || '0', 10);
+                                                if (count > 0) {
+                                                    return <li key={denom.id}>₹{denom.value} &times; {count} = ₹{(denom.value * count).toLocaleString('en-IN')}</li>
+                                                }
+                                                return null;
+                                            })}
+                                        </ul>
                                     </div>
                                 )}
                             </div>
-                        )) : <p className="text-center text-slate-500 mt-8">No history yet. Perform a count and save it!</p>}
+                        )) : (
+                            <p className="text-center text-slate-500 dark:text-slate-400 py-8">No history found.</p>
+                        )}
                     </div>
                 </div>
             ) : (
                 <>
-                     {/* The main counter UI, no logic changes needed here */}
-                    <div className="mb-4">
-                        <label htmlFor="expectedAmount" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Expected Total Amount</label>
-                        <div className="mt-1 flex items-center gap-2">
-                            <input
-                                id="expectedAmount"
-                                type="number"
-                                value={expectedAmount}
-                                onChange={e => setExpectedAmount(e.target.value)}
-                                placeholder="e.g., 50000"
-                                className="w-full text-xl rounded-lg p-2 bg-slate-100 dark:bg-slate-700 border-2 border-slate-300 dark:border-slate-600 focus:ring-2 focus:ring-violet-500"
-                            />
-                            {difference !== null && difference !== 0 && (
-                                <div className={`px-3 py-2 rounded-lg text-white font-bold whitespace-nowrap ${difference < 0 ? 'bg-red-500' : 'bg-green-500'}`}>
-                                    {difference > 0 ? 'Extra' : 'Short'}: ₹{Math.abs(difference).toLocaleString('en-IN')}
-                                </div>
-                            )}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md overflow-hidden">
+                            <h2 className="text-lg font-bold p-4 bg-slate-50 dark:bg-slate-700 border-b border-slate-200 dark:border-slate-600">Notes</h2>
+                            <div className="divide-y divide-slate-200 dark:divide-slate-700">
+                                {NOTES.map(denom => <DenominationRow key={denom.id} denom={denom} />)}
+                            </div>
+                        </div>
+                        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md overflow-hidden">
+                            <h2 className="text-lg font-bold p-4 bg-slate-50 dark:bg-slate-700 border-b border-slate-200 dark:border-slate-600">Coins</h2>
+                            <div className="divide-y divide-slate-200 dark:divide-slate-700">
+                                {COINS.map(denom => <DenominationRow key={denom.id} denom={denom} />)}
+                            </div>
                         </div>
                     </div>
-
-                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg overflow-hidden">
-                        {/* Notes Section */}
-                        <div className="divide-y divide-slate-200 dark:divide-slate-700">
-                            {CURRENCY_DATA.map(denom => (
-                                <div key={denom.id} className="grid grid-cols-12 gap-2 items-center px-4 py-2">
-                                    <div className="col-span-4 flex items-center gap-3">
-                                        <img src={denom.imageUrl} alt={`₹ ${denom.value}`} className="object-contain w-24 h-12"/>
-                                        <span className="font-semibold text-slate-700 dark:text-slate-200">{denom.type}</span>
+                    {/* Summary Bar */}
+                    <div className="fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-t border-slate-200 dark:border-slate-700 p-2 sm:p-4 shadow-[0_-2px_10px_rgba(0,0,0,0.1)]">
+                        <div className="container mx-auto">
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                <div className="flex-grow grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+                                    <div>
+                                        <span className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 block">Total Amount</span>
+                                        <span className="font-bold text-lg sm:text-xl text-violet-600 dark:text-violet-400">₹{totalAmount.toLocaleString('en-IN')}</span>
                                     </div>
-                                    <div className="col-span-3 flex items-center justify-center gap-2">
-                                        <span className="text-xl font-medium text-slate-500 dark:text-slate-400">×</span>
-                                        <input type="text" inputMode="numeric" pattern="\d*" value={counts[denom.id] || ''} onChange={(e) => handleCountChange(denom.id, e.target.value)} placeholder="0" className="w-full text-center text-xl font-bold rounded-lg p-2 bg-slate-100 dark:bg-slate-700 border-2 border-slate-300 dark:border-slate-600 focus:ring-2 focus:ring-violet-500"/>
+                                    <div>
+                                        <span className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 block">Total Items</span>
+                                        <span className="font-bold text-lg sm:text-xl">{totalNotesAndCoins}</span>
                                     </div>
-                                    <div className="col-span-5 text-right text-lg font-semibold text-violet-600 dark:text-violet-400 truncate">
-                                        ₹{(denom.value * (parseInt(counts[denom.id] || '0', 10))).toLocaleString('en-IN')}
+                                    <div className="col-span-2 sm:col-span-1">
+                                        <input type="text" inputMode="numeric" value={expectedAmount} onChange={(e) => setExpectedAmount(e.target.value.replace(/[^0-9.]/g, ''))} placeholder="Expected Amount" className="w-full text-center text-sm rounded-lg p-2 bg-slate-100 dark:bg-slate-700 border-2 border-slate-300 dark:border-slate-600 focus:ring-2 focus:ring-violet-500"/>
+                                    </div>
+                                    <div>
+                                       <span className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 block">Difference</span>
+                                        <span className={`font-bold text-lg sm:text-xl ${difference === null ? '' : difference >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                            {difference === null ? '...' : `₹${difference.toLocaleString('en-IN')}`}
+                                        </span>
                                     </div>
                                 </div>
-                            ))}
+                                <div className="flex items-center justify-center gap-2 mt-2 sm:mt-0">
+                                    <button onClick={handleClear} className="px-3 py-2 bg-red-500 text-white rounded-lg text-sm sm:text-base">Clear</button>
+                                    <button onClick={handleSave} className="px-3 py-2 bg-green-500 text-white rounded-lg text-sm sm:text-base">Save</button>
+                                    <button onClick={handleShare} className="px-3 py-2 bg-blue-500 text-white rounded-lg text-sm sm:text-base">Share</button>
+                                    <button onClick={() => setShowHistory(true)} className="px-3 py-2 bg-slate-600 text-white rounded-lg text-sm sm:text-base">History</button>
+                                </div>
+                            </div>
+                            {totalAmount > 0 && <div className="text-center text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-2 font-semibold">
+                                {numberToWordsIn(totalAmount)} Rupees Only
+                            </div>}
                         </div>
                     </div>
                 </>
             )}
-            {/* Floating button and summary popup - no logic changes needed here */}
-             {!showHistory && totalAmount > 0 && (
-                <button
-                    onClick={() => setIsSummaryOpen(true)}
-                    className="fixed bottom-20 right-4 bg-gradient-to-r from-purple-600 to-violet-700 text-white font-bold py-3 px-6 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all z-20 flex items-center gap-2"
-                >
-                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                    <span>Total: ₹{totalAmount.toLocaleString('en-IN')}</span>
-                </button>
-            )}
-
-            <div 
-                className={`fixed inset-0 z-40 transition-opacity ${isSummaryOpen ? 'bg-black/60' : 'bg-transparent pointer-events-none'}`}
-                onClick={() => setIsSummaryOpen(false)}
-            >
-                <div
-                    onClick={(e) => e.stopPropagation()}
-                    className={`fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-800 shadow-t-2xl p-4 transition-transform duration-300 ease-in-out transform rounded-t-2xl ${isSummaryOpen ? 'translate-y-0' : 'translate-y-full'} z-50`}
-                >
-                    <div className="max-w-4xl mx-auto space-y-3">
-                         <div className="flex justify-between items-center pb-2 border-b border-slate-200 dark:border-slate-700">
-                             <h2 className="text-lg font-bold">Calculation Summary</h2>
-                             <button onClick={() => setIsSummaryOpen(false)} className="p-1 rounded-full text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700"><CloseIcon /></button>
-                        </div>
-                         <div className="flex justify-between items-center">
-                            <div className="text-left">
-                                <h2 className="text-sm font-bold text-violet-600 dark:text-violet-400">GRAND TOTAL</h2>
-                                <p className="text-3xl font-extrabold tracking-tight">₹{totalAmount.toLocaleString('en-IN')}</p>
-                            </div>
-                            {difference !== null && (
-                                <div className={`text-right p-2 rounded-lg ${difference < 0 ? 'bg-red-100 dark:bg-red-900' : 'bg-green-100 dark:bg-green-900'}`}>
-                                    <h2 className={`text-sm font-bold ${difference < 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
-                                        {difference === 0 ? 'MATCHED' : difference > 0 ? 'EXTRA' : 'SHORT'}
-                                    </h2>
-                                    <p className="text-xl font-bold">₹{Math.abs(difference).toLocaleString('en-IN')}</p>
-                                </div>
-                            )}
-                        </div>
-                        <div className="text-xs text-slate-500 dark:text-slate-400 italic h-4">
-                            {totalAmount > 0 && `${numberToWordsIn(Math.floor(totalAmount))} Rupees Only`}
-                        </div>
-                         <div className="flex justify-around items-center border-t border-slate-200 dark:border-slate-700 pt-2">
-                            <div className="text-center"><p className="text-sm">Total Notes</p><p className="font-bold text-lg">{totalNotes}</p></div>
-                            <div className="text-center"><button onClick={() => { setIsSummaryOpen(false); setShowHistory(true); }} className="text-sm text-violet-600 dark:text-violet-400 hover:underline">View History ({history.length})</button></div>
-                        </div>
-                         <div className="flex justify-center gap-2 pt-2">
-                                <button onClick={handleClear} className="flex-1 px-4 py-3 bg-slate-200 dark:bg-slate-600 rounded-lg font-semibold">Clear</button>
-                                <button onClick={handleSave} className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg font-semibold">Save</button>
-                                <button onClick={handleShare} className="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg font-semibold">Share</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
     );
 };
 
 // =====================================================================================
-// --- BILLING COMPONENT (Placeholder, to be refactored for Firestore) ---
+// --- PLACEHOLDER COMPONENTS ---
 // =====================================================================================
-interface BillItem { id: number; name: string; qty: number; price: number; }
-
-const Billing: React.FC<{ user: any }> = ({ user }) => {
-    // This component can be refactored similarly to CashCounter to use Firestore
-    // For brevity, it's left with local state for now.
-    const [items, setItems] = useState<BillItem[]>([{ id: 1, name: '', qty: 1, price: 0 }]);
-    const [customerName, setCustomerName] = useState('');
-
-    const handleItemChange = (id: number, field: keyof BillItem, value: any) => setItems(items.map(item => item.id === id ? { ...item, [field]: value } : item));
-    const addItem = () => setItems([...items, { id: Date.now(), name: '', qty: 1, price: 0 }]);
-    const removeItem = (id: number) => setItems(items.filter(item => item.id !== id));
-    const clearBill = () => { setItems([{ id: 1, name: '', qty: 1, price: 0 }]); setCustomerName(''); };
-    const totalBill = useMemo(() => items.reduce((sum, item) => sum + (item.qty * item.price), 0), [items]);
-
-    const generatePdf = () => { /* PDF logic remains same */ };
-
-    return (
-        <div className="flex-grow container mx-auto p-2 sm:p-4 pb-32">
-            <h3 className="text-center p-8 text-slate-500">Billing component coming soon with cloud storage!</h3>
-        </div>
-    );
-};
-
-
-// =====================================================================================
-// --- GST CALCULATOR COMPONENT (Placeholder, to be refactored for Firestore) ---
-// =====================================================================================
-const GstCalculator: React.FC<{ user: any }> = () => {
-    return <div className="flex-grow container mx-auto p-2 sm:p-4 pb-32"><h3 className="text-center p-8 text-slate-500">GST Calculator component coming soon with cloud storage!</h3></div>
-};
-
-
-// =====================================================================================
-// --- ADMIN PANEL COMPONENT ---
-// =====================================================================================
-const AdminPanel: React.FC = () => {
-    const [activityFeed, setActivityFeed] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        const fetchAllActivities = async () => {
-            setLoading(true);
-            const combinedFeed: any[] = [];
-            
-            // NOTE: Firestore collection group queries require an index.
-            // The first time you run this, Firestore will provide a link in the console error
-            // to automatically create the required index. Click that link.
-            try {
-                const cashSnapshot = await db.collectionGroup('cashCounterHistory').orderBy('date', 'desc').limit(100).get();
-                cashSnapshot.forEach((doc: any) => {
-                    const data = doc.data();
-                    combinedFeed.push({
-                        type: 'Cash Count',
-                        date: new Date(data.date),
-                        user: data.userEmail || 'Unknown',
-                        data: `Total: ₹${data.totalAmount.toLocaleString('en-IN')}`,
-                        icon: <CounterIcon />
-                    });
-                });
-            } catch (error) {
-                console.error("Error fetching cash history for admin:", error);
-            }
-            
-            // Add similar collectionGroup queries for billing and GST history here...
-
-            combinedFeed.sort((a, b) => b.date.getTime() - a.date.getTime());
-            setActivityFeed(combinedFeed);
-            setLoading(false);
-        };
-
-        fetchAllActivities();
-    }, []);
-    
-    if (loading) return <div className="text-center p-10">Loading all user activities...</div>
-
-    return (
-        <div className="flex-grow container mx-auto p-2 sm:p-4">
-            <h2 className="text-2xl font-bold mb-4">Admin Dashboard: All User Activity</h2>
-            <div className="bg-yellow-100 dark:bg-yellow-900 border-l-4 border-yellow-500 text-yellow-700 dark:text-yellow-200 p-4 mb-4" role="alert">
-                <p className="font-bold">Important</p>
-                <p>To enable this view, Firestore requires a composite index. If this page is blank or shows an error in the console, please click the link provided in the console error message to create the index automatically in your Firebase project.</p>
-            </div>
-            <div className="space-y-4">
-                {activityFeed.length > 0 ? activityFeed.map((activity, index) => (
-                    <div key={index} className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md flex items-start gap-4">
-                        <div className="bg-violet-100 dark:bg-violet-900 text-violet-600 dark:text-violet-300 p-3 rounded-full">
-                            {activity.icon}
-                        </div>
-                        <div>
-                            <p className="font-bold text-lg">{activity.type}</p>
-                            <p className="text-sm text-slate-500 dark:text-slate-400">By: {activity.user} on {activity.date.toLocaleString('en-IN')}</p>
-                            <p className="mt-1">{activity.data}</p>
-                        </div>
-                    </div>
-                )) : (
-                    <p className="text-center text-slate-500 mt-8">No user activity recorded yet.</p>
-                )}
-            </div>
-        </div>
-    );
-};
-
+const Billing: React.FC = () => <div className="p-4 text-center">Billing Feature Coming Soon!</div>;
+const GstCalculator: React.FC = () => <div className="p-4 text-center">GST Calculator Coming Soon!</div>;
+const AdminPanel: React.FC<{ user: User }> = ({ user }) => <div className="p-4 text-center">Admin Panel Coming Soon!</div>;
 
 // =====================================================================================
 // --- LOGIN SCREEN COMPONENT ---
 // =====================================================================================
 const LoginScreen: React.FC = () => {
-    const [isLoginView, setIsLoginView] = useState(true);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [isLogin, setIsLogin] = useState(true);
     const [error, setError] = useState('');
-    const [loading, setLoading] = useState(false);
 
     const handleAuth = async (e: React.FormEvent) => {
         e.preventDefault();
-        setLoading(true);
         setError('');
         try {
-            if (isLoginView) {
-                await auth.signInWithEmailAndPassword(email, password);
+            if (isLogin) {
+                await signInWithEmailAndPassword(auth, email, password);
             } else {
-                await auth.createUserWithEmailAndPassword(email, password);
+                await createUserWithEmailAndPassword(auth, email, password);
             }
         } catch (err: any) {
             setError(err.message);
-        } finally {
-            setLoading(false);
         }
     };
     
     const handleGoogleSignIn = async () => {
-        setLoading(true);
         setError('');
         try {
-            await auth.signInWithPopup(googleProvider);
+            await signInWithPopup(auth, googleProvider);
         } catch (err: any) {
             setError(err.message);
-        } finally {
-            setLoading(false);
+        }
+    };
+    
+    const handleGuestSignIn = async () => {
+        setError('');
+        try {
+            await signInAnonymously(auth);
+        } catch(err: any) {
+            setError(err.message);
         }
     };
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-slate-100 dark:bg-gray-900 p-4">
-            <div className="w-full max-w-sm mx-auto bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-xl">
-                <h1 className="text-3xl font-bold text-center mb-2 text-violet-600 dark:text-violet-400">{isLoginView ? 'Welcome Back' : 'Create Account'}</h1>
-                <p className="text-center text-slate-500 mb-6">{isLoginView ? 'Sign in to continue' : 'Get started with your account'}</p>
-                
-                <form onSubmit={handleAuth} className="space-y-4">
-                    <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email Address" required className="w-full px-4 py-3 text-lg rounded-lg border-2 dark:bg-slate-700 dark:border-slate-600 focus:ring-2 focus:ring-violet-500" />
-                    <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" required minLength={6} className="w-full px-4 py-3 text-lg rounded-lg border-2 dark:bg-slate-700 dark:border-slate-600 focus:ring-2 focus:ring-violet-500" />
-                    <button type="submit" disabled={loading} className="w-full py-3 bg-gradient-to-r from-purple-600 to-violet-700 text-white font-bold rounded-lg text-lg disabled:opacity-50">
-                        {loading ? 'Processing...' : (isLoginView ? 'Login' : 'Sign Up')}
-                    </button>
-                    {error && <p className="text-red-500 text-sm text-center">{error}</p>}
-                </form>
-
-                <div className="flex items-center my-6">
-                    <div className="flex-grow border-t dark:border-slate-600"></div><span className="mx-4 text-slate-500">OR</span><div className="flex-grow border-t dark:border-slate-600"></div>
+         <div className="min-h-screen flex flex-col items-center justify-center bg-slate-100 dark:bg-gray-900 p-4">
+            <div className="w-full max-w-sm bg-white dark:bg-slate-800 rounded-xl shadow-2xl p-6 sm:p-8">
+                <div className="text-center mb-6">
+                    <h1 className="text-3xl font-bold text-slate-800 dark:text-white">Welcome!</h1>
+                    <p className="text-slate-500 dark:text-slate-400 mt-2">Sign in to continue</p>
                 </div>
-                
-                <button onClick={handleGoogleSignIn} disabled={loading} className="w-full py-3 border-2 dark:border-slate-600 rounded-lg flex items-center justify-center gap-2 font-semibold hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50">
-                    <GoogleIcon /> Sign in with Google
-                </button>
-                
-                <p className="text-center mt-6">
-                    {isLoginView ? "Don't have an account?" : "Already have an account?"}
-                    <button onClick={() => setIsLoginView(!isLoginView)} className="font-semibold text-violet-600 hover:underline ml-1">
-                        {isLoginView ? 'Sign Up' : 'Login'}
+                {error && <p className="bg-red-100 text-red-700 p-3 rounded-lg mb-4 text-center text-sm">{error.replace('Firebase: ', '')}</p>}
+                <form onSubmit={handleAuth} className="space-y-4">
+                    <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required className="w-full px-4 py-3 rounded-lg bg-slate-100 dark:bg-slate-700 border-2 border-transparent focus:border-violet-500 focus:ring-violet-500 outline-none transition" />
+                    <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required className="w-full px-4 py-3 rounded-lg bg-slate-100 dark:bg-slate-700 border-2 border-transparent focus:border-violet-500 focus:ring-violet-500 outline-none transition" />
+                    <button type="submit" className="w-full bg-violet-600 text-white font-bold py-3 rounded-lg hover:bg-violet-700 transition-transform transform hover:scale-105 duration-300">
+                        {isLogin ? 'Login' : 'Sign Up'}
                     </button>
-                </p>
+                </form>
+                <div className="text-center my-4">
+                    <button onClick={() => setIsLogin(!isLogin)} className="text-sm text-violet-500 hover:underline">
+                        {isLogin ? 'Need an account? Sign Up' : 'Already have an account? Login'}
+                    </button>
+                </div>
+                <div className="relative my-6">
+                    <div className="absolute inset-0 flex items-center">
+                        <div className="w-full border-t border-slate-300 dark:border-slate-600"></div>
+                    </div>
+                    <div className="relative flex justify-center text-sm">
+                        <span className="px-2 bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400">OR</span>
+                    </div>
+                </div>
+                 <div className="space-y-3">
+                    <button onClick={handleGoogleSignIn} className="w-full flex items-center justify-center gap-3 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold py-3 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 transition">
+                        <GoogleIcon />
+                        <span>Sign in with Google</span>
+                    </button>
+                    <button onClick={handleGuestSignIn} className="w-full bg-orange-500 text-white font-bold py-3 rounded-lg hover:bg-orange-600 transition-transform transform hover:scale-105 duration-300">
+                        Login as Guest
+                    </button>
+                </div>
             </div>
         </div>
     );
 };
 
-
 // =====================================================================================
 // --- FEEDBACK MODAL COMPONENT ---
 // =====================================================================================
-const FeedbackModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
-    // ... (No changes needed for FeedbackModal)
-    return <div></div>;
+const FeedbackModal: React.FC<{user: User, onClose: () => void}> = ({ user, onClose }) => {
+    const [feedback, setFeedback] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [message, setMessage] = useState('');
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!feedback.trim()) return;
+        setIsSubmitting(true);
+        setMessage('');
+        try {
+            await addDoc(collection(db, 'feedback'), {
+                text: feedback,
+                userEmail: user.isAnonymous ? 'Guest' : user.email,
+                uid: user.uid,
+                timestamp: serverTimestamp(),
+                userAgent: navigator.userAgent
+            });
+            setMessage('Thank you for your feedback!');
+            setFeedback('');
+            setTimeout(() => {
+                onClose();
+            }, 2000);
+        } catch (error) {
+            console.error("Error submitting feedback: ", error);
+            setMessage('Failed to send feedback. Please try again.');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+    
+    return (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md p-6 relative">
+                 <button onClick={onClose} className="absolute top-3 right-3 p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700"><CloseIcon/></button>
+                <h2 className="text-xl font-bold mb-4">Submit Feedback</h2>
+                <form onSubmit={handleSubmit}>
+                    <textarea value={feedback} onChange={e => setFeedback(e.target.value)} placeholder="Tell us what you think..." rows={5} className="w-full p-2 rounded-md bg-slate-100 dark:bg-slate-700 border-2 border-slate-300 dark:border-slate-600 focus:ring-2 focus:ring-violet-500 mb-4"></textarea>
+                    <button type="submit" disabled={isSubmitting} className="w-full bg-violet-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-violet-700 disabled:bg-violet-400">
+                        {isSubmitting ? 'Sending...' : 'Send Feedback'}
+                    </button>
+                    {message && <p className={`mt-4 text-center text-sm ${message.includes('Failed') ? 'text-red-500' : 'text-green-500'}`}>{message}</p>}
+                </form>
+            </div>
+        </div>
+    );
 };
 
+// =====================================================================================
+// --- NAVIGATION BUTTON COMPONENT ---
+// =====================================================================================
+const NavButton: React.FC<{active?: boolean, onClick: () => void, children: React.ReactNode, isSidebar?: boolean}> = ({ active, onClick, children, isSidebar }) => (
+    <button onClick={onClick} className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition ${
+        isSidebar ? 'w-full text-left' : ''
+    } ${
+        active 
+        ? 'bg-violet-100 text-violet-700 dark:bg-violet-900/50 dark:text-violet-300' 
+        : 'hover:bg-slate-100 dark:hover:bg-slate-700'
+    }`}>
+        {children}
+    </button>
+);
 
 // =====================================================================================
 // --- MAIN APP COMPONENT ---
 // =====================================================================================
 const App: React.FC = () => {
+    const [user, setUser] = useState<User | null>(null);
+    const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<ActiveTab>('counter');
-    const [user, setUser] = useState<any | null>(null);
-    const [authLoading, setAuthLoading] = useState(true);
     const [theme, setTheme] = useLocalStorage<Theme>('theme', 'light');
-    const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
-    const menuRef = useRef<HTMLDivElement>(null);
+    const [isSidebarOpen, setSidebarOpen] = useState(false);
+    const [isFeedbackOpen, setFeedbackOpen] = useState(false);
     const [showSplash, setShowSplash] = useState(true);
 
     useEffect(() => {
-        const timer = setTimeout(() => setShowSplash(false), 2500);
-        const unsubscribe = auth.onAuthStateChanged((user: any) => {
-            setUser(user);
-            setAuthLoading(false);
-        });
-        return () => { clearTimeout(timer); unsubscribe(); };
+        const timer = setTimeout(() => setShowSplash(false), 2400); // Splash screen duration
+        return () => clearTimeout(timer);
     }, []);
 
     useEffect(() => {
-        if (theme === 'dark') document.documentElement.classList.add('dark');
-        else document.documentElement.classList.remove('dark');
+        document.documentElement.classList.toggle('dark', theme === 'dark');
     }, [theme]);
-    
+
     useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (menuRef.current && !menuRef.current.contains(event.target as Node)) setIsMenuOpen(false);
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
+        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+            setUser(currentUser);
+            setLoading(false);
+        });
+        return () => unsubscribe();
     }, []);
 
-    const TABS = {
-        counter: { title: 'Currency Counter', component: <CashCounter user={user} />, icon: <CounterIcon /> },
-        billing: { title: 'Billing', component: <Billing user={user} />, icon: <BillingIcon /> },
-        gst: { title: 'GST Calculator', component: <GstCalculator user={user} />, icon: <GstIcon /> },
-        ...(user?.email === ADMIN_EMAIL && {
-            admin: { title: 'Admin Panel', component: <AdminPanel />, icon: <AdminIcon /> }
-        }),
+    const handleSignOut = async () => {
+        await signOut(auth);
     };
 
-    if (showSplash || authLoading) {
-        return <SplashScreen />;
-    }
+    const toggleTheme = () => {
+        setTheme(prev => prev === 'light' ? 'dark' : 'light');
+    };
+    
+    const isAdmin = user && user.email === ADMIN_EMAIL;
 
-    if (!user) {
-        return <LoginScreen />;
-    }
-
-    const handleLogout = () => {
-        if (window.confirm("Are you sure you want to logout?")) {
-            auth.signOut();
+    const renderContent = () => {
+        if (!user) return null; // Should not happen if AppContent is rendered
+        switch (activeTab) {
+            case 'counter': return <CashCounter user={user} />;
+            case 'billing': return <Billing />;
+            case 'gst': return <GstCalculator />;
+            case 'admin': return isAdmin ? <AdminPanel user={user} /> : <div className="p-4 text-center text-red-500">Access Denied.</div>;
+            default: return <CashCounter user={user} />;
         }
     };
     
-    const toggleTheme = () => setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
+    if (showSplash) {
+        return <SplashScreen />;
+    }
 
+    if (loading) {
+        return <div className="h-screen flex items-center justify-center dark:bg-gray-900 dark:text-white">Loading...</div>;
+    }
+    
+    if (!user) {
+        return <LoginScreen />;
+    }
+    
+    // Main App UI (Header, Sidebar, Content)
     return (
-        <div className="min-h-screen bg-slate-100 dark:bg-gradient-to-b from-slate-900 to-gray-900 text-slate-800 dark:text-slate-100 font-sans flex flex-col">
-            <header className="bg-gradient-to-r from-purple-600 to-violet-700 text-white p-4 shadow-lg sticky top-0 z-30 flex justify-between items-center">
-                <div><h1 className="text-xl sm:text-2xl font-extrabold tracking-tight">{TABS[activeTab].title}</h1></div>
-                <div className="flex items-center gap-2 sm:gap-4">
-                    <span className="hidden sm:block font-semibold text-right truncate">{user.displayName || user.email}</span>
-                    <div className="relative" ref={menuRef}>
-                        <button onClick={() => setIsMenuOpen(prev => !prev)} className="p-2 rounded-full hover:bg-white/20 transition-colors"><MenuIcon /></button>
-                        {isMenuOpen && (
-                            <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-md shadow-lg py-1 z-40 text-slate-700 dark:text-slate-200">
-                                <div className="px-4 py-2 border-b dark:border-slate-700">
-                                    <p className="text-sm font-semibold">My Account</p>
-                                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{user.email}</p>
-                                </div>
-                                <button onClick={toggleTheme} className="w-full text-left px-4 py-2 text-sm flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-700"><ThemeIcon /> Change Theme</button>
-                                <button onClick={() => { setIsFeedbackModalOpen(true); setIsMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-700"><FeedbackIcon /> Feedback</button>
-                                <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-sm flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-700 text-red-600 dark:text-red-400"><LogoutIcon /> Logout</button>
-                            </div>
-                        )}
+        <div className="flex h-screen bg-slate-100 dark:bg-gray-900 text-slate-900 dark:text-slate-100 font-sans">
+             {/* Header */}
+            <header className="fixed top-0 left-0 right-0 z-40 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm shadow-md">
+                <div className="container mx-auto px-4 h-16 flex justify-between items-center">
+                    <div className="flex items-center gap-4">
+                        <button onClick={() => setSidebarOpen(!isSidebarOpen)} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 lg:hidden">
+                            {isSidebarOpen ? <CloseIcon /> : <MenuIcon />}
+                        </button>
+                        <h1 className="text-xl font-bold text-violet-600 dark:text-violet-400">CashDenom</h1>
+                    </div>
+                    <div className="hidden lg:flex items-center gap-2">
+                        {/* Desktop Nav */}
+                        <NavButton active={activeTab === 'counter'} onClick={() => setActiveTab('counter')}><CounterIcon /> Counter</NavButton>
+                        <NavButton active={activeTab === 'billing'} onClick={() => setActiveTab('billing')}><BillingIcon /> Billing</NavButton>
+                        <NavButton active={activeTab === 'gst'} onClick={() => setActiveTab('gst')}><GstIcon /> GST Calc</NavButton>
+                        {isAdmin && <NavButton active={activeTab === 'admin'} onClick={() => setActiveTab('admin')}><AdminIcon /> Admin</NavButton>}
+                    </div>
+                    <div className="flex items-center gap-3">
+                         <div className="flex items-center text-sm gap-2">
+                            <UserIcon />
+                            <span className="hidden sm:inline">{user.isAnonymous ? 'Guest' : (user.displayName || user.email)}</span>
+                         </div>
+                        <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700"><ThemeIcon /></button>
+                        <button onClick={() => setFeedbackOpen(true)} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 hidden sm:block"><FeedbackIcon /></button>
+                        <button onClick={handleSignOut} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700"><LogoutIcon /></button>
                     </div>
                 </div>
             </header>
             
-            <main className="flex-grow">{TABS[activeTab].component}</main>
+            {/* Sidebar (Mobile) */}
+             <aside className={`fixed top-0 left-0 z-30 w-64 h-full pt-16 bg-white dark:bg-slate-800 shadow-xl transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out lg:hidden`}>
+                <nav className="p-4 space-y-2">
+                    <NavButton isSidebar active={activeTab === 'counter'} onClick={() => {setActiveTab('counter'); setSidebarOpen(false);}}><CounterIcon /> Currency Counter</NavButton>
+                    <NavButton isSidebar active={activeTab === 'billing'} onClick={() => {setActiveTab('billing'); setSidebarOpen(false);}}><BillingIcon /> Billing</NavButton>
+                    <NavButton isSidebar active={activeTab === 'gst'} onClick={() => {setActiveTab('gst'); setSidebarOpen(false);}}><GstIcon /> GST Calculator</NavButton>
+                    {isAdmin && <NavButton isSidebar active={activeTab === 'admin'} onClick={() => {setActiveTab('admin'); setSidebarOpen(false);}}><AdminIcon /> Admin Panel</NavButton>}
+                    <div className="border-t border-slate-200 dark:border-slate-700 my-4"></div>
+                    <button onClick={() => {setFeedbackOpen(true); setSidebarOpen(false);}} className="w-full flex items-center gap-3 px-4 py-3 text-left text-sm rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700">
+                        <FeedbackIcon /> Feedback
+                    </button>
+                </nav>
+            </aside>
 
-            <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex justify-around z-20">
-                {Object.keys(TABS).map(key => {
-                    const tab = TABS[key as ActiveTab];
-                    const isActive = activeTab === key;
-                    return (
-                        <button key={key} onClick={() => setActiveTab(key as ActiveTab)} className={`flex-1 p-2 flex flex-col items-center justify-center text-xs transition-colors ${isActive ? 'text-violet-600 dark:text-violet-400' : 'text-slate-500 dark:text-slate-400 hover:text-violet-500'}`}>
-                            {tab.icon}
-                            <span className="mt-1">{key.charAt(0).toUpperCase() + key.slice(1)}</span>
-                        </button>
-                    )
-                })}
-            </nav>
+            {/* Main Content */}
+            <main className="w-full pt-16 overflow-y-auto">
+                {renderContent()}
+            </main>
             
-            {isFeedbackModalOpen && <FeedbackModal onClose={() => setIsFeedbackModalOpen(false)} />}
+            {isFeedbackOpen && <FeedbackModal user={user} onClose={() => setFeedbackOpen(false)} />}
         </div>
     );
 };
+
 
 export default App;
