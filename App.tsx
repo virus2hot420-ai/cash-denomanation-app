@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 
 // --- TYPE DEFINITIONS & CONSTANTS ---
@@ -9,14 +10,15 @@ type ActiveTab = 'counter' | 'billing' | 'gst';
 type Theme = 'light' | 'dark';
 
 const CURRENCY_DATA = [
-    { id: 'note-500', value: 500, isCoin: false, type: 'Note', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/25/India_new_500_INR%2C_obverse.jpg/640px-India_new_500_INR%2C_obverse.jpg' },
-    { id: 'note-200', value: 200, isCoin: false, type: 'Note', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/India_new_200_INR%2C_obverse.jpg/640px-India_new_200_INR%2C_obverse.jpg' },
-    { id: 'note-100', value: 100, isCoin: false, type: 'Note', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/India_new_100_INR%2C_obverse.jpg/640px-India_new_100_INR%2C_obverse.jpg' },
-    { id: 'note-50', value: 50, isCoin: false, type: 'Note', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/India_new_50_INR%2C_obverse.jpg/640px-India_new_50_INR%2C_obverse.jpg' },
-    { id: 'note-20', value: 20, isCoin: false, type: 'Note', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d5/20_INR_note_Mahatma_Gandhi_New_Series.jpg/640px-20_INR_note_Mahatma_Gandhi_New_Series.jpg' },
-    { id: 'note-10', value: 10, isCoin: false, type: 'Note', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/India_new_10_INR%2C_obverse.jpg/640px-India_new_10_INR%2C_obverse.jpg' },
-    { id: 'note-5', value: 5, isCoin: false, type: 'Note', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/85/5_INR_note_Mahatma_Gandhi_New_Series.jpg/640px-5_INR_note_Mahatma_Gandhi_New_Series.jpg'},
+    { id: 'note-500', value: 500, isCoin: false, type: 'Note', imageUrl: 'https://drive.google.com/uc?export=view&id=1XIMya5hQuZ4ZENMRdK9FCIUok697A_Pl' },
+    { id: 'note-200', value: 200, isCoin: false, type: 'Note', imageUrl: 'https://drive.google.com/uc?export=view&id=165wR-aEl9yatma8jJgyGqUdf5y2jjfFY' },
+    { id: 'note-100', value: 100, isCoin: false, type: 'Note', imageUrl: 'https://drive.google.com/uc?export=view&id=1wIrLXRaY3ZJH8mxlCFtDAC_x3C7xXKnU' },
+    { id: 'note-50', value: 50, isCoin: false, type: 'Note', imageUrl: 'https://drive.google.com/uc?export=view&id=1mnSfMsN9AXBUPdufEX22Aa8GdeWtPQTK' },
+    { id: 'note-20', value: 20, isCoin: false, type: 'Note', imageUrl: 'https://drive.google.com/uc?export=view&id=1MBzhWLxPDlx1pw2DP4A3NpNKdcJqWvI-' },
+    { id: 'note-10', value: 10, isCoin: false, type: 'Note', imageUrl: 'https://drive.google.com/uc?export=view&id=1OwmaHbXlS8ueB2DlnIKq-bCiGoG1jYmf' },
+    { id: 'note-5', value: 5, isCoin: false, type: 'Note', imageUrl: 'https://drive.google.com/uc?export=view&id=1WJr6M_aHVwNXce6AA-4NzVA6OxLWCfZq'},
 ];
+
 
 // --- CUSTOM HOOK FOR LOCAL STORAGE ---
 function useLocalStorage<T>(key: string, initialValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
@@ -80,6 +82,35 @@ const MenuIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-
 const UserIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>;
 const ThemeIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>;
 const FeedbackIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>;
+const GoogleIcon = () => <svg className="w-5 h-5" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C12.955 4 4 12.955 4 24s8.955 20 20 20s20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"></path><path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C16.318 4 9.656 8.337 6.306 14.691z"></path><path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238C29.211 35.091 26.715 36 24 36c-5.222 0-9.618-3.226-11.283-7.582l-6.522 5.025C9.505 39.556 16.227 44 24 44z"></path><path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.087 5.571l6.19 5.238C44.592 34.933 48 29.861 48 24c0-1.341-.138-2.65-.389-3.917z"></path></svg>;
+
+// =====================================================================================
+// --- SPLASH SCREEN COMPONENT ---
+// =====================================================================================
+const SplashScreen: React.FC = () => (
+    <div className="fixed inset-0 bg-slate-100 dark:bg-gray-900 z-[100] flex flex-col items-center justify-center splash-screen">
+        <div className="splash-content text-center">
+            <div className="relative w-[150px] h-[100px] mb-6 inline-block overflow-hidden rounded-md shadow-lg">
+                <div className="absolute top-0 left-0 w-full h-1/3 bg-[#FF9933] animate-slide-in-saffron"></div>
+                <div className="absolute top-1/3 left-0 w-full h-1/3 bg-white animate-slide-in-white flex items-center justify-center">
+                     <svg width="33" height="33" viewBox="0 0 100 100" className="animate-chakra-spin">
+                        <circle cx="50" cy="50" r="45" fill="none" stroke="#000080" strokeWidth="8"/>
+                        <g transform="translate(50,50)">
+                            {[...Array(24)].map((_, i) => (
+                                <line key={i} x1="0" y1="0" x2="0" y2="-45" stroke="#000080" strokeWidth="4" transform={`rotate(${i * 15})`}/>
+                            ))}
+                        </g>
+                        <circle cx="50" cy="50" r="10" fill="#000080"/>
+                    </svg>
+                </div>
+                <div className="absolute bottom-0 left-0 w-full h-1/3 bg-[#138808] animate-slide-in-green"></div>
+            </div>
+            <p className="text-2xl font-bold text-slate-700 dark:text-slate-300 tracking-wider">
+                Proudly Created in India
+            </p>
+        </div>
+    </div>
+);
 
 
 // =====================================================================================
@@ -214,7 +245,7 @@ const CashCounter: React.FC = () => {
                                 value={expectedAmount}
                                 onChange={e => setExpectedAmount(e.target.value)}
                                 placeholder="e.g., 50000"
-                                className="w-full text-xl rounded-lg p-2 bg-slate-100 dark:bg-slate-700 border-2 border-slate-300 dark:border-slate-600 focus:ring-2 focus:ring-indigo-500"
+                                className="w-full text-xl rounded-lg p-2 bg-slate-100 dark:bg-slate-700 border-2 border-slate-300 dark:border-slate-600 focus:ring-2 focus:ring-violet-500"
                             />
                             {difference !== null && difference !== 0 && (
                                 <div className={`px-3 py-2 rounded-lg text-white font-bold whitespace-nowrap ${difference < 0 ? 'bg-red-500' : 'bg-green-500'}`}>
@@ -241,10 +272,10 @@ const CashCounter: React.FC = () => {
                                         type="text" inputMode="numeric" pattern="\d*" value={counts[denom.id] || ''}
                                         onChange={(e) => handleCountChange(denom.id, e.target.value)}
                                         placeholder="0"
-                                        className="w-full text-center text-xl font-bold rounded-lg p-2 bg-slate-100 dark:bg-slate-700 border-2 border-slate-300 dark:border-slate-600 focus:ring-2 focus:ring-indigo-500"
+                                        className="w-full text-center text-xl font-bold rounded-lg p-2 bg-slate-100 dark:bg-slate-700 border-2 border-slate-300 dark:border-slate-600 focus:ring-2 focus:ring-violet-500"
                                     />
                                 </div>
-                                <div className="col-span-5 text-right text-lg font-semibold text-indigo-600 dark:text-indigo-400 truncate">
+                                <div className="col-span-5 text-right text-lg font-semibold text-violet-600 dark:text-violet-400 truncate">
                                     ₹{(denom.value * (parseInt(counts[denom.id] || '0', 10))).toLocaleString('en-IN')}
                                 </div>
                             </div>
@@ -257,7 +288,7 @@ const CashCounter: React.FC = () => {
             {!showHistory && totalAmount > 0 && (
                 <button
                     onClick={() => setIsSummaryOpen(true)}
-                    className="fixed bottom-20 right-4 bg-gradient-to-r from-purple-600 to-indigo-700 text-white font-bold py-3 px-6 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all z-20 flex items-center gap-2"
+                    className="fixed bottom-20 right-4 bg-gradient-to-r from-purple-600 to-violet-700 text-white font-bold py-3 px-6 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all z-20 flex items-center gap-2"
                 >
                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                     <span>Total: ₹{totalAmount.toLocaleString('en-IN')}</span>
@@ -285,7 +316,7 @@ const CashCounter: React.FC = () => {
                         {/* Popup Content */}
                          <div className="flex justify-between items-center">
                             <div className="text-left">
-                                <h2 className="text-sm font-bold text-indigo-600 dark:text-indigo-400">GRAND TOTAL</h2>
+                                <h2 className="text-sm font-bold text-violet-600 dark:text-violet-400">GRAND TOTAL</h2>
                                 <p className="text-3xl font-extrabold tracking-tight">₹{totalAmount.toLocaleString('en-IN')}</p>
                             </div>
                             {difference !== null && (
@@ -303,7 +334,7 @@ const CashCounter: React.FC = () => {
                          <div className="flex justify-between items-center border-t border-slate-200 dark:border-slate-700 pt-2">
                             <div className="flex-1 text-center"><p className="text-sm">Notes</p><p className="font-bold text-lg">{totalNotes}</p></div>
                             <div className="flex-1 text-center"><p className="text-sm">Coins</p><p className="font-bold text-lg">{totalCoins}</p></div>
-                            <div className="flex-1 text-center"><button onClick={() => { setIsSummaryOpen(false); setShowHistory(true); }} className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">History ({history.length})</button></div>
+                            <div className="flex-1 text-center"><button onClick={() => { setIsSummaryOpen(false); setShowHistory(true); }} className="text-sm text-violet-600 dark:text-violet-400 hover:underline">History ({history.length})</button></div>
                         </div>
                          <div className="flex justify-center gap-2 pt-2">
                                 <button onClick={handleClear} className="flex-1 px-4 py-3 bg-slate-200 dark:bg-slate-600 rounded-lg font-semibold">Clear</button>
@@ -432,7 +463,7 @@ const GstCalculator: React.FC = () => {
                 <div>
                     <label className="block text-sm font-medium mb-1">GST Rate (%)</label>
                     <div className="flex gap-2 flex-wrap">
-                        {GST_RATES.map(r => <button key={r} onClick={() => setRate(r)} className={`px-4 py-2 rounded-lg ${rate === r ? 'bg-indigo-600 text-white' : 'bg-slate-200 dark:bg-slate-600'}`}>{r}%</button>)}
+                        {GST_RATES.map(r => <button key={r} onClick={() => setRate(r)} className={`px-4 py-2 rounded-lg ${rate === r ? 'bg-violet-600 text-white' : 'bg-slate-200 dark:bg-slate-600'}`}>{r}%</button>)}
                     </div>
                 </div>
                 <div>
@@ -446,7 +477,7 @@ const GstCalculator: React.FC = () => {
                         <div className="flex justify-between"><span className="text-slate-500">Initial Amount:</span> <span>₹{result.initial.toLocaleString('en-IN')}</span></div>
                         <div className="flex justify-between"><span className="text-slate-500">CGST ({rate/2}%):</span> <span>₹{result.cgst.toLocaleString('en-IN')}</span></div>
                         <div className="flex justify-between"><span className="text-slate-500">SGST ({rate/2}%):</span> <span>₹{result.sgst.toLocaleString('en-IN')}</span></div>
-                        <div className="flex justify-between text-xl font-bold"><span className="">Final Amount:</span> <span className="text-indigo-600">₹{result.final.toLocaleString('en-IN')}</span></div>
+                        <div className="flex justify-between text-xl font-bold"><span className="">Final Amount:</span> <span className="text-violet-600">₹{result.final.toLocaleString('en-IN')}</span></div>
                         <button onClick={handleSave} className="w-full mt-2 py-2 bg-blue-600 text-white rounded-lg">Save Calculation</button>
                     </div>
                 )}
@@ -471,31 +502,109 @@ const GstCalculator: React.FC = () => {
 // =====================================================================================
 const LoginScreen: React.FC<{ onLogin: (name: string) => void }> = ({ onLogin }) => {
     const [name, setName] = useState('');
-    const handleSubmit = (e: React.FormEvent) => {
+    const [phone, setPhone] = useState('');
+    const [otp, setOtp] = useState('');
+    const [otpSent, setOtpSent] = useState(false);
+    const [error, setError] = useState('');
+
+    const handleNameSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (name.trim()) {
             onLogin(name.trim());
         }
     };
 
+    const handleGoogleLogin = () => {
+        // This is a simulation. In a real app, you would use the Google Sign-In library.
+        alert("Simulating Google Login...");
+        onLogin("Google User");
+    };
+
+    const handleSendOtp = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (phone.length >= 10 && /^\d+$/.test(phone)) {
+            setOtpSent(true);
+            setError('');
+            alert(`OTP sent to ${phone}. (Hint: The OTP is 123456)`);
+        } else {
+            setError('Please enter a valid 10-digit phone number.');
+        }
+    };
+
+    const handleVerifyOtp = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (otp === '123456') {
+            onLogin(`User ${phone.slice(-4)}`);
+        } else {
+            setError('Invalid OTP. Please try again.');
+        }
+    };
+
     return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-slate-100 dark:bg-gray-900 p-4">
             <div className="w-full max-w-sm mx-auto bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-xl">
-                <h1 className="text-3xl font-bold text-center mb-2 text-indigo-600 dark:text-indigo-400">Welcome</h1>
-                <p className="text-center text-slate-500 mb-6">Please enter your name to continue.</p>
-                <form onSubmit={handleSubmit}>
+                <h1 className="text-3xl font-bold text-center mb-2 text-violet-600 dark:text-violet-400">Welcome</h1>
+                <p className="text-center text-slate-500 mb-6">Choose an option to continue.</p>
+                
+                {/* --- Login with Name --- */}
+                <form onSubmit={handleNameSubmit} className="space-y-4">
                     <input
                         type="text"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        placeholder="Your Name"
-                        className="w-full px-4 py-3 text-lg rounded-lg border-2 border-slate-300 dark:bg-slate-700 dark:border-slate-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                        autoFocus
+                        placeholder="Enter Your Name"
+                        className="w-full px-4 py-3 text-lg rounded-lg border-2 border-slate-300 dark:bg-slate-700 dark:border-slate-600 focus:ring-2 focus:ring-violet-500 focus:outline-none"
                     />
-                    <button type="submit" className="w-full mt-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-700 text-white font-bold rounded-lg text-lg">
-                        Login
+                    <button type="submit" className="w-full py-3 bg-gradient-to-r from-purple-600 to-violet-700 text-white font-bold rounded-lg text-lg">
+                        Continue with Name
                     </button>
                 </form>
+
+                {/* --- OR Divider --- */}
+                <div className="flex items-center my-6">
+                    <div className="flex-grow border-t border-slate-300 dark:border-slate-600"></div>
+                    <span className="mx-4 text-slate-500">OR</span>
+                    <div className="flex-grow border-t border-slate-300 dark:border-slate-600"></div>
+                </div>
+                
+                {/* --- Social & Phone Logins --- */}
+                <div className="space-y-4">
+                     {/* Google Login */}
+                     <button onClick={handleGoogleLogin} className="w-full flex items-center justify-center gap-3 py-3 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg font-semibold hover:bg-slate-50 dark:hover:bg-slate-600">
+                        <GoogleIcon />
+                        Sign in with Google
+                    </button>
+                    
+                     {/* Phone Login */}
+                    <form onSubmit={otpSent ? handleVerifyOtp : handleSendOtp}>
+                        <div className="space-y-4">
+                            <input
+                                type="tel"
+                                value={phone}
+                                onChange={(e) => setPhone(e.target.value)}
+                                placeholder="Phone Number"
+                                className="w-full px-4 py-3 rounded-lg border-2 border-slate-300 dark:bg-slate-700 dark:border-slate-600 focus:ring-2 focus:ring-violet-500 focus:outline-none"
+                                disabled={otpSent}
+                            />
+                            {otpSent && (
+                                <input
+                                    type="text"
+                                    inputMode="numeric"
+                                    pattern="\d*"
+                                    value={otp}
+                                    onChange={(e) => setOtp(e.target.value)}
+                                    placeholder="Enter OTP"
+                                    className="w-full px-4 py-3 rounded-lg border-2 border-slate-300 dark:bg-slate-700 dark:border-slate-600 focus:ring-2 focus:ring-violet-500 focus:outline-none"
+                                    autoFocus
+                                />
+                            )}
+                            {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+                            <button type="submit" className="w-full py-3 bg-slate-700 text-white font-bold rounded-lg hover:bg-slate-800 dark:bg-slate-600 dark:hover:bg-slate-500">
+                                {otpSent ? 'Verify & Login' : 'Send OTP'}
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     );
@@ -533,7 +642,7 @@ const FeedbackModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                         className="w-full h-32 p-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
                         autoFocus
                     ></textarea>
-                    <button type="submit" className="w-full py-2 bg-indigo-600 text-white font-semibold rounded-lg">Submit</button>
+                    <button type="submit" className="w-full py-2 bg-violet-600 text-white font-semibold rounded-lg">Submit</button>
                 </form>
             </div>
         </div>
@@ -551,6 +660,12 @@ const App: React.FC = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
+    const [showSplash, setShowSplash] = useState(true);
+
+    useEffect(() => {
+        const timer = setTimeout(() => setShowSplash(false), 2500);
+        return () => clearTimeout(timer);
+    }, []);
 
     useEffect(() => {
         if (theme === 'dark') {
@@ -576,6 +691,10 @@ const App: React.FC = () => {
         gst: { title: 'GST Calculator', component: <GstCalculator />, icon: <GstIcon /> },
     };
 
+    if (showSplash) {
+        return <SplashScreen />;
+    }
+
     if (!userName) {
         return <LoginScreen onLogin={setUserName} />;
     }
@@ -592,31 +711,34 @@ const App: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-slate-100 dark:bg-gradient-to-b from-slate-900 to-gray-900 text-slate-800 dark:text-slate-100 font-sans flex flex-col">
-            <header className="bg-gradient-to-r from-purple-600 to-indigo-700 text-white p-4 shadow-lg sticky top-0 z-30 flex justify-between items-center">
+            <header className="bg-gradient-to-r from-purple-600 to-violet-700 text-white p-4 shadow-lg sticky top-0 z-30 flex justify-between items-center">
                 <div>
                     <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight">{TAB_DATA[activeTab].title}</h1>
                 </div>
-                <div className="relative" ref={menuRef}>
-                    <button onClick={() => setIsMenuOpen(prev => !prev)} className="p-2 rounded-full hover:bg-white/20 transition-colors">
-                        <MenuIcon />
-                    </button>
-                    {isMenuOpen && (
-                        <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-md shadow-lg py-1 z-40 text-slate-700 dark:text-slate-200">
-                            <div className="px-4 py-2 border-b dark:border-slate-700">
-                                <p className="text-sm font-semibold">My Account</p>
-                                <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{userName}</p>
+                <div className="flex items-center gap-2 sm:gap-4">
+                    <span className="hidden sm:block font-semibold text-right truncate">{userName}</span>
+                    <div className="relative" ref={menuRef}>
+                        <button onClick={() => setIsMenuOpen(prev => !prev)} className="p-2 rounded-full hover:bg-white/20 transition-colors">
+                            <MenuIcon />
+                        </button>
+                        {isMenuOpen && (
+                            <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-md shadow-lg py-1 z-40 text-slate-700 dark:text-slate-200">
+                                <div className="px-4 py-2 border-b dark:border-slate-700">
+                                    <p className="text-sm font-semibold">My Account</p>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{userName}</p>
+                                </div>
+                                <button onClick={toggleTheme} className="w-full text-left px-4 py-2 text-sm flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-700">
+                                    <ThemeIcon /> Change Theme
+                                </button>
+                                <button onClick={() => { setIsFeedbackModalOpen(true); setIsMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-700">
+                                    <FeedbackIcon /> Feedback
+                                </button>
+                                <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-sm flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-700 text-red-600 dark:text-red-400">
+                                    <LogoutIcon /> Logout
+                                </button>
                             </div>
-                            <button onClick={toggleTheme} className="w-full text-left px-4 py-2 text-sm flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-700">
-                                <ThemeIcon /> Change Theme
-                            </button>
-                            <button onClick={() => { setIsFeedbackModalOpen(true); setIsMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-700">
-                                <FeedbackIcon /> Feedback
-                            </button>
-                            <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-sm flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-700 text-red-600 dark:text-red-400">
-                                <LogoutIcon /> Logout
-                            </button>
-                        </div>
-                    )}
+                        )}
+                    </div>
                 </div>
             </header>
             
@@ -629,7 +751,7 @@ const App: React.FC = () => {
                     const tab = TAB_DATA[key as ActiveTab];
                     const isActive = activeTab === key;
                     return (
-                        <button key={key} onClick={() => setActiveTab(key as ActiveTab)} className={`flex-1 p-2 flex flex-col items-center justify-center text-xs transition-colors ${isActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400 hover:text-indigo-500'}`}>
+                        <button key={key} onClick={() => setActiveTab(key as ActiveTab)} className={`flex-1 p-2 flex flex-col items-center justify-center text-xs transition-colors ${isActive ? 'text-violet-600 dark:text-violet-400' : 'text-slate-500 dark:text-slate-400 hover:text-violet-500'}`}>
                             {tab.icon}
                             <span className="mt-1">{key.charAt(0).toUpperCase() + key.slice(1)}</span>
                         </button>
