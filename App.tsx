@@ -12,7 +12,7 @@ declare global {
 }
 
 
-type ActiveTab = 'counter' | 'billing' | 'gst';
+type ActiveTab = 'counter' | 'billing' | 'gst' | 'admin';
 type Theme = 'light' | 'dark';
 
 const CURRENCY_DATA = [
@@ -25,31 +25,55 @@ const CURRENCY_DATA = [
     { id: 'note-5', value: 5, type: 'Note', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/India_5_INR%2C_MG_series%2C_2002%2C_obverse.png/320px-India_5_INR%2C_MG_series%2C_2002%2C_obverse.png'},
 ];
 
+const ADMIN_USERNAME = "AdminVirus";
+const APP_DATA_KEY = 'appData';
 
-// --- CUSTOM HOOK FOR LOCAL STORAGE ---
-function useLocalStorage<T>(key: string, initialValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
-    const [storedValue, setStoredValue] = useState<T>(() => {
+
+// --- CUSTOM HOOK FOR USER-CENTRIC LOCAL STORAGE (SIMULATED CENTRALIZED DB) ---
+function useUserData<T>(userName: string, key: string, initialValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
+    const getUserData = () => {
         try {
-            const item = window.localStorage.getItem(key);
-            return item ? JSON.parse(item) : initialValue;
+            const appData = JSON.parse(window.localStorage.getItem(APP_DATA_KEY) || '{}');
+            return appData[userName] || {};
         } catch (error) {
-            console.error(error);
-            return initialValue;
+            console.error("Error reading user data from localStorage", error);
+            return {};
         }
+    };
+
+    const [storedValue, setStoredValue] = useState<T>(() => {
+        const userData = getUserData();
+        return userData[key] ?? initialValue;
     });
+
+    useEffect(() => {
+        // This effect ensures that if the user logs out and logs in as someone else,
+        // the hook's state updates to reflect the new user's data.
+        const userData = getUserData();
+        setStoredValue(userData[key] ?? initialValue);
+    }, [userName, key, initialValue]);
+
 
     const setValue: React.Dispatch<React.SetStateAction<T>> = (value) => {
         try {
             const valueToStore = value instanceof Function ? value(storedValue) : value;
             setStoredValue(valueToStore);
-            window.localStorage.setItem(key, JSON.stringify(valueToStore));
+
+            // Read the entire app data, update the specific user's key, and write it back.
+            const appData = JSON.parse(window.localStorage.getItem(APP_DATA_KEY) || '{}');
+            if (!appData[userName]) {
+                appData[userName] = {};
+            }
+            appData[userName][key] = valueToStore;
+            window.localStorage.setItem(APP_DATA_KEY, JSON.stringify(appData));
         } catch (error) {
-            console.error(error);
+            console.error("Error saving user data to localStorage", error);
         }
     };
 
     return [storedValue, setValue];
 }
+
 
 // --- HELPER FUNCTIONS ---
 const numberToWordsIn = (num: number): string => {
@@ -105,6 +129,7 @@ const addWatermark = (doc: any) => {
 const CounterIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 14h.01M12 11h.01M15 11h.01M9 11h.01M12 21a9 9 0 110-18 9 9 0 010 18z" /></svg>;
 const BillingIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>;
 const GstIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>;
+const AdminIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>;
 const LogoutIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>;
 const TrashIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>;
 const CloseIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>;
@@ -114,6 +139,7 @@ const ThemeIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w
 const FeedbackIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>;
 const GoogleIcon = () => <svg className="w-5 h-5" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C12.955 4 4 12.955 4 24s8.955 20 20 20s20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"></path><path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C16.318 4 9.656 8.337 6.306 14.691z"></path><path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238C29.211 35.091 26.715 36 24 36c-5.222 0-9.618-3.226-11.283-7.582l-6.522 5.025C9.505 39.556 16.227 44 24 44z"></path><path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.087 5.571l6.19 5.238C44.592 34.933 48 29.861 48 24c0-1.341-.138-2.65-.389-3.917z"></path></svg>;
 const DownloadIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" /></svg>;
+const DeviceInfoIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>;
 
 // =====================================================================================
 // --- SPLASH SCREEN COMPONENT ---
@@ -148,10 +174,10 @@ const SplashScreen: React.FC = () => (
 // --- CASH COUNTER COMPONENT ---
 // =====================================================================================
 const CashCounter: React.FC<{ userName: string }> = ({ userName }) => {
-    const [counts, setCounts] = useLocalStorage<{ [key: string]: string }>('cashCounterCounts', {});
-    const [history, setHistory] = useLocalStorage<any[]>('cashCounterHistory', []);
+    const [counts, setCounts] = useUserData<{ [key: string]: string }>(userName, 'cashCounterCounts', {});
+    const [history, setHistory] = useUserData<any[]>(userName, 'cashCounterHistory', []);
     const [showHistory, setShowHistory] = useState(false);
-    const [expectedAmount, setExpectedAmount] = useLocalStorage('expectedAmount', '');
+    const [expectedAmount, setExpectedAmount] = useUserData(userName, 'expectedAmount', '');
     const [isSummaryOpen, setIsSummaryOpen] = useState(false);
     const [expandedHistory, setExpandedHistory] = useState<string | null>(null);
 
@@ -467,8 +493,9 @@ const CashCounter: React.FC<{ userName: string }> = ({ userName }) => {
 interface BillItem { id: number; name: string; qty: number; price: number; }
 
 const Billing: React.FC<{ userName: string }> = ({ userName }) => {
-    const [items, setItems] = useLocalStorage<BillItem[]>('billItems', [{ id: 1, name: '', qty: 1, price: 0 }]);
-    const [customerName, setCustomerName] = useLocalStorage('billCustomer', '');
+    const [items, setItems] = useUserData<BillItem[]>(userName, 'billItems', [{ id: 1, name: '', qty: 1, price: 0 }]);
+    const [customerName, setCustomerName] = useUserData(userName, 'billCustomer', '');
+    const [billHistory, setBillHistory] = useUserData<any[]>(userName, 'billHistory', []);
 
     const handleItemChange = (id: number, field: keyof BillItem, value: any) => {
         setItems(items.map(item => item.id === id ? { ...item, [field]: value } : item));
@@ -481,8 +508,7 @@ const Billing: React.FC<{ userName: string }> = ({ userName }) => {
     const totalBill = useMemo(() => items.reduce((sum, item) => sum + (item.qty * item.price), 0), [items]);
 
     const generatePdf = () => {
-        const { jsPDF } = jspdf;
-        const doc = new jsPDF();
+        const doc = new jspdf.jsPDF();
         doc.text("Invoice", 105, 15, { align: 'center' });
         doc.setFontSize(12);
         doc.text(`Customer: ${customerName || 'N/A'}`, 14, 25);
@@ -499,6 +525,18 @@ const Billing: React.FC<{ userName: string }> = ({ userName }) => {
         });
         addWatermark(doc);
         doc.save(`invoice-${Date.now()}.pdf`);
+        
+        // Save to history
+        if (totalBill > 0) {
+            const newBillEntry = {
+                id: Date.now(),
+                date: new Date().toISOString(),
+                customerName,
+                total: totalBill,
+                items,
+            };
+            setBillHistory([newBillEntry, ...billHistory]);
+        }
     };
 
     return (
@@ -543,11 +581,11 @@ const Billing: React.FC<{ userName: string }> = ({ userName }) => {
 interface GstHistoryItem { id: number; amount: number; rate: number; type: 'add' | 'remove'; result: any; }
 const GST_RATES = [3, 5, 12, 18, 28];
 
-const GstCalculator: React.FC = () => {
+const GstCalculator: React.FC<{ userName: string }> = ({ userName }) => {
     const [amount, setAmount] = useState<string>('');
     const [rate, setRate] = useState<number>(18);
     const [type, setType] = useState<'add' | 'remove'>('add');
-    const [history, setHistory] = useLocalStorage<GstHistoryItem[]>('gstHistory', []);
+    const [history, setHistory] = useUserData<GstHistoryItem[]>(userName, 'gstHistory', []);
 
     const result = useMemo(() => {
         const numAmount = parseFloat(amount) || 0;
@@ -615,6 +653,92 @@ const GstCalculator: React.FC = () => {
 };
 
 // =====================================================================================
+// --- ADMIN PANEL COMPONENT ---
+// =====================================================================================
+const AdminPanel: React.FC = () => {
+    const [activityFeed, setActivityFeed] = useState<any[]>([]);
+
+    useEffect(() => {
+        const appData = JSON.parse(localStorage.getItem(APP_DATA_KEY) || '{}');
+        const combinedFeed: any[] = [];
+
+        for (const userName in appData) {
+            if (userName === ADMIN_USERNAME) continue; // Skip admin's own potential data
+            
+            const userData = appData[userName];
+
+            (userData.cashCounterHistory || []).forEach((item: any) => {
+                combinedFeed.push({
+                    userName,
+                    type: 'Cash Count',
+                    date: new Date(item.date),
+                    data: `Total Amount: ₹${item.totalAmount.toLocaleString('en-IN')}`,
+                    icon: <CounterIcon />
+                });
+            });
+
+            (userData.gstHistory || []).forEach((item: any) => {
+                combinedFeed.push({
+                    userName,
+                    type: 'GST Calculation',
+                    date: new Date(item.id),
+                    data: `Final Amount: ₹${item.result.final.toLocaleString('en-IN')}`,
+                    icon: <GstIcon />
+                });
+            });
+
+            (userData.billHistory || []).forEach((item: any) => {
+                 combinedFeed.push({
+                    userName,
+                    type: 'Bill Created',
+                    date: new Date(item.date),
+                    data: `Customer: ${item.customerName || 'N/A'}, Total: ₹${item.total.toLocaleString('en-IN')}`,
+                    icon: <BillingIcon />
+                });
+            });
+        }
+        
+        // Sort by date, most recent first
+        combinedFeed.sort((a, b) => b.date - a.date);
+        setActivityFeed(combinedFeed);
+
+    }, []);
+
+    return (
+        <div className="flex-grow container mx-auto p-2 sm:p-4">
+            <h2 className="text-2xl font-bold mb-4">Admin Dashboard</h2>
+            <div className="bg-blue-100 dark:bg-blue-900 border-l-4 border-blue-500 text-blue-700 dark:text-blue-200 p-4 mb-4" role="alert">
+                <p className="font-bold">Centralized Data View</p>
+                <p>This panel displays a combined log of activities from all user accounts stored on this device, simulating a centralized database.</p>
+            </div>
+            <div className="space-y-4">
+                {activityFeed.length > 0 ? activityFeed.map((activity, index) => (
+                    <div key={index} className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md flex items-start gap-4">
+                        <div className="bg-violet-100 dark:bg-violet-900 text-violet-600 dark:text-violet-300 p-3 rounded-full">
+                            {activity.icon}
+                        </div>
+                        <div className="flex-grow">
+                            <div className="flex justify-between items-center">
+                                <p className="font-bold text-lg">{activity.type}</p>
+                                <div className="flex items-center gap-2 text-sm bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded-full">
+                                    <UserIcon />
+                                    <span>{activity.userName}</span>
+                                </div>
+                            </div>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">{activity.date.toLocaleString('en-IN')}</p>
+                            <p className="mt-1">{activity.data}</p>
+                        </div>
+                    </div>
+                )) : (
+                    <p className="text-center text-slate-500 mt-8">No user activity recorded on this device yet.</p>
+                )}
+            </div>
+        </div>
+    );
+};
+
+
+// =====================================================================================
 // --- LOGIN SCREEN COMPONENT ---
 // =====================================================================================
 // Helper to decode JWT token from Google Sign-In
@@ -645,7 +769,6 @@ const LoginScreen: React.FC<{ onLogin: (name: string) => void }> = ({ onLogin })
     
     // Google Sign-In Callback
     const handleGoogleSignInCallback = (response: any) => {
-        // NOTE: In a real-world app, you should send the credential to your backend for verification.
         const userObject = jwt_decode(response.credential);
         if (userObject && userObject.name) {
             onLogin(userObject.name);
@@ -658,7 +781,6 @@ const LoginScreen: React.FC<{ onLogin: (name: string) => void }> = ({ onLogin })
         // Initialize Google Sign-In
         if (window.google) {
             window.google.accounts.id.initialize({
-                // IMPORTANT: Replace with your actual Google Client ID
                 client_id: "307413483347-jviu5aqulsnob10ppof817pn309eep8o.apps.googleusercontent.com",
                 callback: handleGoogleSignInCallback
             });
@@ -676,9 +798,8 @@ const LoginScreen: React.FC<{ onLogin: (name: string) => void }> = ({ onLogin })
         <div className="min-h-screen flex flex-col items-center justify-center bg-slate-100 dark:bg-gray-900 p-4">
             <div className="w-full max-w-sm mx-auto bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-xl">
                 <h1 className="text-3xl font-bold text-center mb-2 text-violet-600 dark:text-violet-400">Welcome</h1>
-                <p className="text-center text-slate-500 mb-6">Choose an option to continue.</p>
+                <p className="text-center text-slate-500 mb-6">Enter your name to create or access your account.</p>
                 
-                {/* --- Login with Name --- */}
                 <form onSubmit={handleNameSubmit} className="space-y-4">
                     <input
                         type="text"
@@ -688,18 +809,16 @@ const LoginScreen: React.FC<{ onLogin: (name: string) => void }> = ({ onLogin })
                         className="w-full px-4 py-3 text-lg rounded-lg border-2 border-slate-300 dark:bg-slate-700 dark:border-slate-600 focus:ring-2 focus:ring-violet-500 focus:outline-none"
                     />
                     <button type="submit" className="w-full py-3 bg-gradient-to-r from-purple-600 to-violet-700 text-white font-bold rounded-lg text-lg">
-                        Continue with Name
+                        Continue
                     </button>
                 </form>
 
-                {/* --- OR Divider --- */}
                 <div className="flex items-center my-6">
                     <div className="flex-grow border-t border-slate-300 dark:border-slate-600"></div>
                     <span className="mx-4 text-slate-500">OR</span>
                     <div className="flex-grow border-t border-slate-300 dark:border-slate-600"></div>
                 </div>
                 
-                {/* --- Google Login --- */}
                 <div className="space-y-2">
                      <div id="googleSignInButton" className="flex justify-center"></div>
                      {error && <p className="text-red-500 text-sm text-center pt-2">{error}</p>}
@@ -711,7 +830,7 @@ const LoginScreen: React.FC<{ onLogin: (name: string) => void }> = ({ onLogin })
 
 
 // =====================================================================================
-// --- FEEDBACK MODAL COMPONENT ---
+// --- MODAL COMPONENTS (Feedback, Device Info) ---
 // =====================================================================================
 const FeedbackModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     const [feedback, setFeedback] = useState('');
@@ -748,16 +867,54 @@ const FeedbackModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     );
 };
 
+const DeviceInfoModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+    const [deviceInfo, setDeviceInfo] = useState<Record<string, string>>({});
+
+    useEffect(() => {
+        setDeviceInfo({
+            "User Agent": navigator.userAgent,
+            "Platform": navigator.platform,
+            "Language": navigator.language,
+            "Screen Resolution": `${window.screen.width} x ${window.screen.height}`,
+            "Available Screen": `${window.screen.availWidth} x ${window.screen.availHeight}`,
+            "Color Depth": `${window.screen.colorDepth}-bit`,
+            "Online": navigator.onLine ? 'Yes' : 'No',
+            "Cookies Enabled": navigator.cookieEnabled ? 'Yes' : 'No',
+        });
+    }, []);
+
+    return (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={onClose}>
+            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-lg" onClick={e => e.stopPropagation()}>
+                <div className="p-4 border-b dark:border-slate-700 flex justify-between items-center">
+                    <h2 className="text-lg font-bold">Device Information</h2>
+                    <button onClick={onClose} className="p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700"><CloseIcon /></button>
+                </div>
+                <div className="p-4 max-h-[70vh] overflow-y-auto">
+                    <ul className="space-y-2 text-sm">
+                        {Object.entries(deviceInfo).map(([key, value]) => (
+                            <li key={key} className="p-2 rounded-md bg-slate-100 dark:bg-slate-700">
+                                <strong className="block text-slate-600 dark:text-slate-300">{key}</strong>
+                                <span className="break-words">{value}</span>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 // =====================================================================================
 // --- MAIN APP COMPONENT ---
 // =====================================================================================
 const App: React.FC = () => {
     const [activeTab, setActiveTab] = useState<ActiveTab>('counter');
-    const [userName, setUserName] = useLocalStorage<string | null>('userName', null);
-    const [theme, setTheme] = useLocalStorage<Theme>('theme', 'light');
+    const [userName, setUserName] = useState<string | null>(() => sessionStorage.getItem('userName'));
+    const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('theme') as Theme) || 'light');
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
+    const [isDeviceInfoModalOpen, setIsDeviceInfoModalOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
     const [showSplash, setShowSplash] = useState(true);
 
@@ -765,12 +922,19 @@ const App: React.FC = () => {
         const timer = setTimeout(() => setShowSplash(false), 2500);
         return () => clearTimeout(timer);
     }, []);
-
+    
+    const handleLogin = (name: string) => {
+        sessionStorage.setItem('userName', name);
+        setUserName(name);
+    }
+    
     useEffect(() => {
         if (theme === 'dark') {
             document.documentElement.classList.add('dark');
+            localStorage.setItem('theme', 'dark');
         } else {
             document.documentElement.classList.remove('dark');
+            localStorage.setItem('theme', 'light');
         }
     }, [theme]);
     
@@ -784,10 +948,13 @@ const App: React.FC = () => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const TAB_DATA = {
+    const TABS = {
         counter: { title: 'Currency Counter', component: <CashCounter userName={userName!} />, icon: <CounterIcon /> },
         billing: { title: 'Billing', component: <Billing userName={userName!} />, icon: <BillingIcon /> },
-        gst: { title: 'GST Calculator', component: <GstCalculator />, icon: <GstIcon /> },
+        gst: { title: 'GST Calculator', component: <GstCalculator userName={userName!} />, icon: <GstIcon /> },
+        ...(userName === ADMIN_USERNAME && {
+            admin: { title: 'Admin Panel', component: <AdminPanel />, icon: <AdminIcon /> }
+        }),
     };
 
     if (showSplash) {
@@ -795,15 +962,14 @@ const App: React.FC = () => {
     }
 
     if (!userName) {
-        return <LoginScreen onLogin={setUserName} />;
+        return <LoginScreen onLogin={handleLogin} />;
     }
 
     const handleLogout = () => {
-        if(window.confirm("Are you sure you want to logout? All saved data will be cleared.")) {
-            // Clear all application data from local storage for a clean session
-            window.localStorage.clear();
-            // Set user name to null to trigger rerender to the login screen
+        if(window.confirm("Are you sure you want to logout?")) {
+            sessionStorage.removeItem('userName');
             setUserName(null);
+            // We no longer clear all localStorage to preserve other users' data
         }
     };
     
@@ -815,7 +981,7 @@ const App: React.FC = () => {
         <div className="min-h-screen bg-slate-100 dark:bg-gradient-to-b from-slate-900 to-gray-900 text-slate-800 dark:text-slate-100 font-sans flex flex-col">
             <header className="bg-gradient-to-r from-purple-600 to-violet-700 text-white p-4 shadow-lg sticky top-0 z-30 flex justify-between items-center">
                 <div>
-                    <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight">{TAB_DATA[activeTab].title}</h1>
+                    <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight">{TABS[activeTab].title}</h1>
                 </div>
                 <div className="flex items-center gap-2 sm:gap-4">
                     <span className="hidden sm:block font-semibold text-right truncate">{userName}</span>
@@ -829,6 +995,9 @@ const App: React.FC = () => {
                                     <p className="text-sm font-semibold">My Account</p>
                                     <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{userName}</p>
                                 </div>
+                                <button onClick={() => { setIsDeviceInfoModalOpen(true); setIsMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-700">
+                                    <DeviceInfoIcon /> Device Info
+                                </button>
                                 <button onClick={toggleTheme} className="w-full text-left px-4 py-2 text-sm flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-700">
                                     <ThemeIcon /> Change Theme
                                 </button>
@@ -845,12 +1014,12 @@ const App: React.FC = () => {
             </header>
             
             <main className="flex-grow">
-                {TAB_DATA[activeTab].component}
+                {TABS[activeTab].component}
             </main>
 
             <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex justify-around z-20">
-                {Object.keys(TAB_DATA).map(key => {
-                    const tab = TAB_DATA[key as ActiveTab];
+                {Object.keys(TABS).map(key => {
+                    const tab = TABS[key as ActiveTab];
                     const isActive = activeTab === key;
                     return (
                         <button key={key} onClick={() => setActiveTab(key as ActiveTab)} className={`flex-1 p-2 flex flex-col items-center justify-center text-xs transition-colors ${isActive ? 'text-violet-600 dark:text-violet-400' : 'text-slate-500 dark:text-slate-400 hover:text-violet-500'}`}>
@@ -862,6 +1031,7 @@ const App: React.FC = () => {
             </nav>
             
             {isFeedbackModalOpen && <FeedbackModal onClose={() => setIsFeedbackModalOpen(false)} />}
+            {isDeviceInfoModalOpen && <DeviceInfoModal onClose={() => setIsDeviceInfoModalOpen(false)} />}
         </div>
     );
 };
