@@ -79,6 +79,7 @@ const BillingIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6
 const GstIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>;
 const LogoutIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>;
 const TrashIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>;
+const CloseIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>;
 
 
 // =====================================================================================
@@ -90,6 +91,7 @@ const CashCounter: React.FC = () => {
     const [showHistory, setShowHistory] = useState(false);
     const [expectedAmount, setExpectedAmount] = useLocalStorage('expectedAmount', '');
     const receiptRef = useRef<HTMLDivElement>(null);
+    const [isSummaryOpen, setIsSummaryOpen] = useState(false);
 
     const handleCountChange = (id: string, newCount: string) => {
         if (/^\d*$/.test(newCount)) {
@@ -182,7 +184,7 @@ const CashCounter: React.FC = () => {
     };
 
     return (
-        <div className="flex-grow container mx-auto p-2 sm:p-4 pb-56">
+        <div className="flex-grow container mx-auto p-2 sm:p-4 pb-24">
             {showHistory ? (
                 <div>
                     <div className="flex justify-between items-center mb-4">
@@ -205,14 +207,21 @@ const CashCounter: React.FC = () => {
                 <>
                     <div className="mb-4">
                         <label htmlFor="expectedAmount" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Expected Total Amount</label>
-                        <input
-                            id="expectedAmount"
-                            type="number"
-                            value={expectedAmount}
-                            onChange={e => setExpectedAmount(e.target.value)}
-                            placeholder="e.g., 50000"
-                            className="mt-1 w-full text-xl rounded-lg p-2 bg-slate-100 dark:bg-slate-700 border-2 border-slate-300 dark:border-slate-600 focus:ring-2 focus:ring-indigo-500"
-                        />
+                        <div className="mt-1 flex items-center gap-2">
+                            <input
+                                id="expectedAmount"
+                                type="number"
+                                value={expectedAmount}
+                                onChange={e => setExpectedAmount(e.target.value)}
+                                placeholder="e.g., 50000"
+                                className="w-full text-xl rounded-lg p-2 bg-slate-100 dark:bg-slate-700 border-2 border-slate-300 dark:border-slate-600 focus:ring-2 focus:ring-indigo-500"
+                            />
+                            {difference !== null && difference !== 0 && (
+                                <div className={`px-3 py-2 rounded-lg text-white font-bold whitespace-nowrap ${difference < 0 ? 'bg-red-500' : 'bg-green-500'}`}>
+                                    {difference > 0 ? 'Extra' : 'Short'}: ₹{Math.abs(difference).toLocaleString('en-IN')}
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     <div ref={receiptRef} className="bg-white dark:bg-slate-800 rounded-xl shadow-lg overflow-hidden divide-y divide-slate-200 dark:divide-slate-700">
@@ -241,40 +250,69 @@ const CashCounter: React.FC = () => {
                             </div>
                         ))}
                     </div>
-
-                    <footer className="fixed bottom-16 left-0 right-0 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm border-t border-slate-200 dark:border-slate-700 shadow-t-2xl p-3">
-                        <div className="max-w-4xl mx-auto space-y-2">
-                            <div className="flex justify-between items-center">
-                                <div className="text-left">
-                                    <h2 className="text-sm font-bold text-indigo-600 dark:text-indigo-400">GRAND TOTAL</h2>
-                                    <p className="text-3xl font-extrabold tracking-tight">₹{totalAmount.toLocaleString('en-IN')}</p>
-                                </div>
-                                {difference !== null && (
-                                     <div className={`text-right p-2 rounded-lg ${difference === 0 ? 'bg-green-100 dark:bg-green-900' : difference > 0 ? 'bg-blue-100 dark:bg-blue-900' : 'bg-red-100 dark:bg-red-900'}`}>
-                                        <h2 className={`text-sm font-bold ${difference === 0 ? 'text-green-600' : difference > 0 ? 'text-blue-600' : 'text-red-600'}`}>
-                                            {difference === 0 ? 'MATCHED' : difference > 0 ? 'EXTRA' : 'SHORT'}
-                                        </h2>
-                                        <p className="text-xl font-bold">₹{Math.abs(difference).toLocaleString('en-IN')}</p>
-                                    </div>
-                                )}
-                            </div>
-                            <div className="text-xs text-slate-500 dark:text-slate-400 italic h-4">
-                                {totalAmount > 0 && `${numberToWordsIn(totalAmount)} Rupees Only`}
-                            </div>
-                             <div className="flex justify-between items-center border-t border-slate-200 dark:border-slate-700 pt-2">
-                                <div className="flex-1 text-center"><p className="text-sm">Notes</p><p className="font-bold text-lg">{totalNotes}</p></div>
-                                <div className="flex-1 text-center"><p className="text-sm">Coins</p><p className="font-bold text-lg">{totalCoins}</p></div>
-                                <div className="flex-1 text-center"><button onClick={() => setShowHistory(true)} className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">History ({history.length})</button></div>
-                            </div>
-                             <div className="flex justify-center gap-2 pt-2">
-                                    <button onClick={handleClear} className="flex-1 px-4 py-2 bg-slate-200 dark:bg-slate-600 rounded-lg font-semibold">Clear</button>
-                                    <button onClick={handleSave} className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold">Save</button>
-                                    <button onClick={handleShare} className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg font-semibold">Share</button>
-                            </div>
-                        </div>
-                    </footer>
                 </>
             )}
+
+            {/* Floating Action Button for Summary */}
+            {!showHistory && totalAmount > 0 && (
+                <button
+                    onClick={() => setIsSummaryOpen(true)}
+                    className="fixed bottom-20 right-4 bg-gradient-to-r from-purple-600 to-indigo-700 text-white font-bold py-3 px-6 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all z-20 flex items-center gap-2"
+                >
+                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                    <span>Total: ₹{totalAmount.toLocaleString('en-IN')}</span>
+                </button>
+            )}
+
+            {/* Summary Popup / Bottom Sheet */}
+            <div 
+                className={`fixed inset-0 z-40 transition-opacity ${isSummaryOpen ? 'bg-black/60' : 'bg-transparent pointer-events-none'}`}
+                onClick={() => setIsSummaryOpen(false)}
+            >
+                <div
+                    onClick={(e) => e.stopPropagation()}
+                    className={`fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-800 shadow-t-2xl p-4 transition-transform duration-300 ease-in-out transform rounded-t-2xl ${isSummaryOpen ? 'translate-y-0' : 'translate-y-full'} z-50`}
+                >
+                    <div className="max-w-4xl mx-auto space-y-3">
+                         {/* Popup Header */}
+                        <div className="flex justify-between items-center pb-2 border-b border-slate-200 dark:border-slate-700">
+                             <h2 className="text-lg font-bold">Calculation Summary</h2>
+                             <button onClick={() => setIsSummaryOpen(false)} className="p-1 rounded-full text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700">
+                                 <CloseIcon />
+                             </button>
+                        </div>
+                        
+                        {/* Popup Content */}
+                         <div className="flex justify-between items-center">
+                            <div className="text-left">
+                                <h2 className="text-sm font-bold text-indigo-600 dark:text-indigo-400">GRAND TOTAL</h2>
+                                <p className="text-3xl font-extrabold tracking-tight">₹{totalAmount.toLocaleString('en-IN')}</p>
+                            </div>
+                            {difference !== null && (
+                                <div className={`text-right p-2 rounded-lg ${difference < 0 ? 'bg-red-100 dark:bg-red-900' : 'bg-green-100 dark:bg-green-900'}`}>
+                                    <h2 className={`text-sm font-bold ${difference < 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                                        {difference === 0 ? 'MATCHED' : difference > 0 ? 'EXTRA' : 'SHORT'}
+                                    </h2>
+                                    <p className="text-xl font-bold">₹{Math.abs(difference).toLocaleString('en-IN')}</p>
+                                </div>
+                            )}
+                        </div>
+                        <div className="text-xs text-slate-500 dark:text-slate-400 italic h-4">
+                            {totalAmount > 0 && `${numberToWordsIn(totalAmount)} Rupees Only`}
+                        </div>
+                         <div className="flex justify-between items-center border-t border-slate-200 dark:border-slate-700 pt-2">
+                            <div className="flex-1 text-center"><p className="text-sm">Notes</p><p className="font-bold text-lg">{totalNotes}</p></div>
+                            <div className="flex-1 text-center"><p className="text-sm">Coins</p><p className="font-bold text-lg">{totalCoins}</p></div>
+                            <div className="flex-1 text-center"><button onClick={() => { setIsSummaryOpen(false); setShowHistory(true); }} className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">History ({history.length})</button></div>
+                        </div>
+                         <div className="flex justify-center gap-2 pt-2">
+                                <button onClick={handleClear} className="flex-1 px-4 py-3 bg-slate-200 dark:bg-slate-600 rounded-lg font-semibold">Clear</button>
+                                <button onClick={handleSave} className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg font-semibold">Save</button>
+                                <button onClick={handleShare} className="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg font-semibold">Share</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 };
