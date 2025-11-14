@@ -1,0 +1,5 @@
+{
+  "name": "Indian Currency Denomination Calculator",
+  "description": "A simple and elegant web application to calculate the minimum number of Indian currency notes and coins for a given amount. Enter a total, and the app will provide a detailed breakdown of each denomination.",
+  "requestFramePermissions": []
+}
