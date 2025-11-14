@@ -10,13 +10,13 @@ type ActiveTab = 'counter' | 'billing' | 'gst';
 type Theme = 'light' | 'dark';
 
 const CURRENCY_DATA = [
-    { id: 'note-500', value: 500, isCoin: false, type: 'Note', imageUrl: 'https://drive.google.com/uc?export=view&id=1XIMya5hQuZ4ZENMRdK9FCIUok697A_Pl' },
-    { id: 'note-200', value: 200, isCoin: false, type: 'Note', imageUrl: 'https://drive.google.com/uc?export=view&id=165wR-aEl9yatma8jJgyGqUdf5y2jjfFY' },
-    { id: 'note-100', value: 100, isCoin: false, type: 'Note', imageUrl: 'https://drive.google.com/uc?export=view&id=1wIrLXRaY3ZJH8mxlCFtDAC_x3C7xXKnU' },
-    { id: 'note-50', value: 50, isCoin: false, type: 'Note', imageUrl: 'https://drive.google.com/uc?export=view&id=1mnSfMsN9AXBUPdufEX22Aa8GdeWtPQTK' },
-    { id: 'note-20', value: 20, isCoin: false, type: 'Note', imageUrl: 'https://drive.google.com/uc?export=view&id=1MBzhWLxPDlx1pw2DP4A3NpNKdcJqWvI-' },
-    { id: 'note-10', value: 10, isCoin: false, type: 'Note', imageUrl: 'https://drive.google.com/uc?export=view&id=1OwmaHbXlS8ueB2DlnIKq-bCiGoG1jYmf' },
-    { id: 'note-5', value: 5, isCoin: false, type: 'Note', imageUrl: 'https://drive.google.com/uc?export=view&id=1WJr6M_aHVwNXce6AA-4NzVA6OxLWCfZq'},
+    { id: 'note-500', value: 500, type: 'Note', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/India_new_500_INR%2C_Mahatma_Gandhi_New_Series%2C_2016%2C_obverse.png/320px-India_new_500_INR%2C_Mahatma_Gandhi_New_Series%2C_2016%2C_obverse.png' },
+    { id: 'note-200', value: 200, type: 'Note', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/India_new_200_INR%2C_Mahatma_Gandhi_New_Series%2C_2017%2C_obverse.png/320px-India_new_200_INR%2C_Mahatma_Gandhi_New_Series%2C_2017%2C_obverse.png' },
+    { id: 'note-100', value: 100, type: 'Note', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/89/India_new_100_INR%2C_Mahatma_Gandhi_New_Series%2C_2018%2C_obverse.png/320px-India_new_100_INR%2C_Mahatma_Gandhi_New_Series%2C_2018%2C_obverse.png' },
+    { id: 'note-50', value: 50, type: 'Note', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/India_new_50_INR%2C_Mahatma_Gandhi_New_Series%2C_2017%2C_obverse.png/320px-India_new_50_INR%2C_Mahatma_Gandhi_New_Series%2C_2017%2C_obverse.png' },
+    { id: 'note-20', value: 20, type: 'Note', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/India_new_20_INR%2C_Mahatma_Gandhi_New_Series%2C_2019%2C_obverse.png/320px-India_new_20_INR%2C_Mahatma_Gandhi_New_Series%2C_2019%2C_obverse.png' },
+    { id: 'note-10', value: 10, type: 'Note', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/89/India_new_10_INR%2C_Mahatma_Gandhi_New_Series%2C_2018%2C_obverse.png/320px-India_new_10_INR%2C_Mahatma_Gandhi_New_Series%2C_2018%2C_obverse.png' },
+    { id: 'note-5', value: 5, type: 'Note', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/India_5_INR%2C_MG_series%2C_2002%2C_obverse.png/320px-India_5_INR%2C_MG_series%2C_2002%2C_obverse.png'},
 ];
 
 
@@ -71,6 +71,30 @@ const numberToWordsIn = (num: number): string => {
     return result.trim().replace(/\s+/g, ' ');
 };
 
+const addWatermark = (doc: any) => {
+    const totalPages = doc.internal.getNumberOfPages();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+
+    for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        doc.setFontSize(40);
+        doc.setTextColor(230, 230, 230); // Light gray
+        doc.setFont(undefined, 'bold');
+        
+        doc.text(
+            ["App developed in India", "Developed by Virus 2.0"],
+            pageWidth / 2,
+            pageHeight / 2,
+            { align: 'center', angle: -45, baseline: 'middle' }
+        );
+    }
+    // Reset text color for any other operations
+    doc.setTextColor(0, 0, 0);
+    doc.setFont(undefined, 'normal');
+};
+
+
 // --- UI ICONS ---
 const CounterIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 14h.01M12 11h.01M15 11h.01M9 11h.01M12 21a9 9 0 110-18 9 9 0 010 18z" /></svg>;
 const BillingIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>;
@@ -83,6 +107,7 @@ const UserIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-
 const ThemeIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>;
 const FeedbackIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>;
 const GoogleIcon = () => <svg className="w-5 h-5" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C12.955 4 4 12.955 4 24s8.955 20 20 20s20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"></path><path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C16.318 4 9.656 8.337 6.306 14.691z"></path><path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238C29.211 35.091 26.715 36 24 36c-5.222 0-9.618-3.226-11.283-7.582l-6.522 5.025C9.505 39.556 16.227 44 24 44z"></path><path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.087 5.571l6.19 5.238C44.592 34.933 48 29.861 48 24c0-1.341-.138-2.65-.389-3.917z"></path></svg>;
+const DownloadIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" /></svg>;
 
 // =====================================================================================
 // --- SPLASH SCREEN COMPONENT ---
@@ -116,30 +141,29 @@ const SplashScreen: React.FC = () => (
 // =====================================================================================
 // --- CASH COUNTER COMPONENT ---
 // =====================================================================================
-const CashCounter: React.FC = () => {
+const CashCounter: React.FC<{ userName: string }> = ({ userName }) => {
     const [counts, setCounts] = useLocalStorage<{ [key: string]: string }>('cashCounterCounts', {});
     const [history, setHistory] = useLocalStorage<any[]>('cashCounterHistory', []);
     const [showHistory, setShowHistory] = useState(false);
     const [expectedAmount, setExpectedAmount] = useLocalStorage('expectedAmount', '');
-    const receiptRef = useRef<HTMLDivElement>(null);
     const [isSummaryOpen, setIsSummaryOpen] = useState(false);
+    const [expandedHistory, setExpandedHistory] = useState<string | null>(null);
 
     const handleCountChange = (id: string, newCount: string) => {
         if (/^\d*$/.test(newCount)) {
             setCounts(prev => ({ ...prev, [id]: newCount }));
         }
     };
-
-    const { totalAmount, totalNotes, totalCoins } = useMemo(() => {
+    
+    const { totalAmount, totalNotes } = useMemo(() => {
         return CURRENCY_DATA.reduce((acc, denom) => {
             const count = parseInt(counts[denom.id] || '0', 10);
             if (count > 0) {
                 acc.totalAmount += denom.value * count;
-                if (denom.isCoin) acc.totalCoins += count;
-                else acc.totalNotes += count;
+                acc.totalNotes += count;
             }
             return acc;
-        }, { totalAmount: 0, totalNotes: 0, totalCoins: 0 });
+        }, { totalAmount: 0, totalNotes: 0 });
     }, [counts]);
 
     const difference = useMemo(() => {
@@ -153,7 +177,7 @@ const CashCounter: React.FC = () => {
         if (totalAmount > 0) {
             const newEntry = {
                 date: new Date().toISOString(),
-                totalAmount, totalNotes, totalCoins, counts, expectedAmount,
+                totalAmount, totalNotes, counts, expectedAmount,
             };
             setHistory([newEntry, ...history]);
             alert('Count saved to history!');
@@ -161,59 +185,130 @@ const CashCounter: React.FC = () => {
     };
     
     const generateShareText = () => {
-        let text = `*Cash Count Summary*\n*Total: ₹${totalAmount.toLocaleString('en-IN')}*\n\n`;
+        const now = new Date();
+        const formattedDateTime = now.toLocaleString('en-IN', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+        });
+
+        let text = `*Cash Count Summary*\n\n`;
+        text += `*Total Amount: ₹${totalAmount.toLocaleString('en-IN')}*\n\n`;
+        
         CURRENCY_DATA.forEach(denom => {
             const count = parseInt(counts[denom.id] || '0', 10);
             if (count > 0) {
-                text += `₹${denom.value} (${denom.type}) × ${count} = ₹${(denom.value * count).toLocaleString('en-IN')}\n`;
+                text += `₹${denom.value} × ${count} = ₹${(denom.value * count).toLocaleString('en-IN')}\n`;
             }
         });
-        text += `\n*Total Notes:* ${totalNotes}\n*Total Coins:* ${totalCoins}`;
+        
+        text += `\n*Total Notes:* ${totalNotes}\n\n`;
+        text += `--------------------\n`;
+        text += `Shared by: ${userName}\n`;
+        text += `On: ${formattedDateTime}`;
         return text;
     };
 
-    const handleShare = async () => {
+    const handleShare = () => {
         if (totalAmount <= 0) return;
-        
+
         const shareText = generateShareText();
         
-        if (receiptRef.current && navigator.share) {
-            try {
-                const canvas = await html2canvas(receiptRef.current, { backgroundColor: '#ffffff' });
-                canvas.toBlob(async (blob) => {
-                    if (blob) {
-                         const file = new File([blob], 'receipt.jpg', { type: 'image/jpeg' });
-                         await navigator.share({ title: 'Cash Receipt', text: shareText, files: [file] });
-                    }
-                }, 'image/jpeg');
-            } catch (error) {
-                 console.error("Image generation/sharing failed, falling back to text:", error);
-                 window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank');
-            }
+        if (navigator.share) {
+            navigator.share({
+                title: 'Cash Count Summary',
+                text: shareText,
+            }).catch(error => console.error('Error sharing:', error));
         } else {
+            // Fallback for browsers that don't support the Web Share API
             window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank');
         }
     };
     
+    const generateSingleEntryPdf = (entry: any) => {
+        const { jsPDF } = jspdf;
+        const doc = new jsPDF();
+        doc.text(`Cash Count Summary`, 105, 15, { align: 'center' });
+        doc.setFontSize(12);
+        doc.text(`Date: ${new Date(entry.date).toLocaleString('en-IN')}`, 14, 25);
+        doc.setFontSize(10);
+        doc.text(`Generated By: ${userName}`, 196, 25, { align: 'right' });
+
+        doc.setFontSize(10);
+        doc.text(`Total Amount: ₹${(entry.totalAmount || 0).toLocaleString('en-IN')}`, 14, 35);
+        if (entry.expectedAmount) {
+            const expected = parseFloat(entry.expectedAmount);
+            const difference = entry.totalAmount - expected;
+            doc.text(`Expected Amount: ₹${expected.toLocaleString('en-IN')}`, 14, 40);
+            doc.text(`Difference: ₹${difference.toLocaleString('en-IN')} (${difference > 0 ? 'Extra' : difference < 0 ? 'Short' : 'Matched'})`, 14, 45);
+        }
+        doc.text(`Total Notes: ${entry.totalNotes}`, 14, 50);
+
+        const tableColumn = ["Denomination", "Count", "Amount"];
+        const tableRows: any[] = [];
+        CURRENCY_DATA.forEach(denom => {
+            const count = parseInt(entry.counts[denom.id] || '0', 10);
+            if (count > 0) {
+                tableRows.push([
+                    `₹ ${denom.value}`,
+                    count.toLocaleString('en-IN'),
+                    `₹ ${(denom.value * count).toLocaleString('en-IN')}`
+                ]);
+            }
+        });
+        doc.autoTable({ head: [tableColumn], body: tableRows, startY: 60, theme: 'grid' });
+        addWatermark(doc);
+        doc.save(`cash_summary_${new Date(entry.date).toISOString().split('T')[0]}.pdf`);
+    };
+
     const generateHistoryPdf = () => {
         const { jsPDF } = jspdf;
         const doc = new jsPDF();
-        doc.text("Cash Counter History", 14, 16);
-        const tableColumn = ["Date", "Total Amount", "Notes", "Coins"];
-        const tableRows: any[] = [];
-        history.forEach(entry => {
-            const entryData = [
-                new Date(entry.date).toLocaleString(),
-                `₹${(entry.totalAmount || 0).toLocaleString('en-IN')}`,
-                entry.totalNotes,
-                entry.totalCoins,
-            ];
-            tableRows.push(entryData);
-        });
-        doc.autoTable({ head: [tableColumn], body: tableRows, startY: 20 });
-        doc.save("cash_history.pdf");
-    };
+        let yPos = 15;
+        doc.text("Cash Counter History", 105, yPos, { align: 'center' });
+        yPos += 7;
+        doc.setFontSize(10);
+        doc.text(`Report for: ${userName}`, 105, yPos, { align: 'center' });
+        yPos += 10;
 
+        history.forEach((entry, index) => {
+            if (yPos > 250) {
+                doc.addPage();
+                yPos = 15;
+            }
+            doc.setFontSize(12);
+            doc.text(`Entry #${index + 1}: ${new Date(entry.date).toLocaleString('en-IN')}`, 14, yPos);
+            yPos += 7;
+            doc.setFontSize(10);
+            doc.text(`Total Amount: ₹${(entry.totalAmount || 0).toLocaleString('en-IN')}`, 14, yPos);
+            yPos += 5;
+            doc.text(`Total Notes: ${entry.totalNotes}`, 14, yPos);
+            yPos += 7;
+            const tableColumn = ["Denomination", "Count", "Amount"];
+            const tableRows: any[] = [];
+            CURRENCY_DATA.forEach(denom => {
+                const count = parseInt(entry.counts[denom.id] || '0', 10);
+                if (count > 0) {
+                    tableRows.push([
+                        `₹ ${denom.value}`,
+                        count.toLocaleString('en-IN'),
+                        `₹ ${(denom.value * count).toLocaleString('en-IN')}`
+                    ]);
+                }
+            });
+            doc.autoTable({
+                head: [tableColumn], body: tableRows, startY: yPos,
+                theme: 'striped', headStyles: { fillColor: [88, 80, 236] }, margin: { left: 14 }
+            });
+            yPos = (doc as any).autoTable.previous.finalY + 15;
+        });
+        addWatermark(doc);
+        doc.save("cash_history_full.pdf");
+    };
+    
     return (
         <div className="flex-grow container mx-auto p-2 sm:p-4 pb-24">
             {showHistory ? (
@@ -221,17 +316,36 @@ const CashCounter: React.FC = () => {
                     <div className="flex justify-between items-center mb-4">
                         <h2 className="text-xl font-bold">Counter History</h2>
                         <div className="flex gap-2">
-                            <button onClick={generateHistoryPdf} className="px-4 py-2 bg-green-600 text-white rounded-lg">Export PDF</button>
-                            <button onClick={() => setShowHistory(false)} className="px-4 py-2 bg-slate-600 text-white rounded-lg">Back to Counter</button>
+                             <button onClick={generateHistoryPdf} className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm sm:text-base">Export All PDF</button>
+                             <button onClick={() => setShowHistory(false)} className="px-4 py-2 bg-slate-600 text-white rounded-lg text-sm sm:text-base">Back to Counter</button>
                         </div>
                     </div>
                     <div className="space-y-2">
                         {history.length > 0 ? history.map(h => (
-                             <div key={h.date} className="bg-white dark:bg-slate-800 p-3 rounded-lg shadow">
-                                <p><strong>Date:</strong> {new Date(h.date).toLocaleString()}</p>
-                                <p><strong>Amount:</strong> ₹{(h.totalAmount || 0).toLocaleString('en-IN')}</p>
+                            <div key={h.date} className="bg-white dark:bg-slate-800 rounded-lg shadow-md overflow-hidden transition-all">
+                                <div className="p-3 flex justify-between items-center cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700" onClick={() => setExpandedHistory(expandedHistory === h.date ? null : h.date)}>
+                                    <div>
+                                        <p className="font-semibold">{new Date(h.date).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</p>
+                                        <p className="text-slate-600 dark:text-slate-300">Total: <span className="font-bold text-violet-600 dark:text-violet-400">₹{(h.totalAmount || 0).toLocaleString('en-IN')}</span></p>
+                                    </div>
+                                    <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 transition-transform ${expandedHistory === h.date ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+                                </div>
+                                {expandedHistory === h.date && (
+                                    <div className="p-4 border-t border-slate-200 dark:border-slate-700 space-y-3 bg-slate-50 dark:bg-slate-800/50">
+                                        <div className="grid grid-cols-3 gap-2 text-sm text-center">
+                                             {CURRENCY_DATA.map(denom => {
+                                                const count = parseInt(h.counts[denom.id] || '0', 10);
+                                                return count > 0 ? <div key={denom.id} className="bg-slate-200 dark:bg-slate-700 p-1 rounded">₹{denom.value} &times; {count}</div> : null;
+                                            })}
+                                        </div>
+                                        <button onClick={() => generateSingleEntryPdf(h)} className="w-full flex items-center justify-center gap-2 mt-2 px-4 py-2 bg-violet-600 text-white rounded-lg font-semibold hover:bg-violet-700">
+                                            <DownloadIcon />
+                                            Download PDF
+                                        </button>
+                                    </div>
+                                )}
                             </div>
-                        )) : <p>No history yet.</p>}
+                        )) : <p className="text-center text-slate-500 mt-8">No history yet. Perform a count and save it!</p>}
                     </div>
                 </div>
             ) : (
@@ -255,31 +369,25 @@ const CashCounter: React.FC = () => {
                         </div>
                     </div>
 
-                    <div ref={receiptRef} className="bg-white dark:bg-slate-800 rounded-xl shadow-lg overflow-hidden divide-y divide-slate-200 dark:divide-slate-700">
-                        {CURRENCY_DATA.map(denom => (
-                            <div key={denom.id} className="grid grid-cols-12 gap-2 items-center px-4 py-2">
-                                <div className="col-span-4 flex items-center gap-3">
-                                    <img 
-                                        src={denom.imageUrl} 
-                                        alt={`₹ ${denom.value}`} 
-                                        className={`object-contain ${denom.isCoin ? 'w-10 h-10' : 'w-24 h-12'}`}
-                                    />
-                                    <span className="font-semibold text-slate-700 dark:text-slate-200">{denom.type}</span>
+                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg overflow-hidden">
+                        {/* Notes Section */}
+                        <div className="divide-y divide-slate-200 dark:divide-slate-700">
+                            {CURRENCY_DATA.map(denom => (
+                                <div key={denom.id} className="grid grid-cols-12 gap-2 items-center px-4 py-2">
+                                    <div className="col-span-4 flex items-center gap-3">
+                                        <img src={denom.imageUrl} alt={`₹ ${denom.value}`} className="object-contain w-24 h-12"/>
+                                        <span className="font-semibold text-slate-700 dark:text-slate-200">{denom.type}</span>
+                                    </div>
+                                    <div className="col-span-3 flex items-center justify-center gap-2">
+                                        <span className="text-xl font-medium text-slate-500 dark:text-slate-400">×</span>
+                                        <input type="text" inputMode="numeric" pattern="\d*" value={counts[denom.id] || ''} onChange={(e) => handleCountChange(denom.id, e.target.value)} placeholder="0" className="w-full text-center text-xl font-bold rounded-lg p-2 bg-slate-100 dark:bg-slate-700 border-2 border-slate-300 dark:border-slate-600 focus:ring-2 focus:ring-violet-500"/>
+                                    </div>
+                                    <div className="col-span-5 text-right text-lg font-semibold text-violet-600 dark:text-violet-400 truncate">
+                                        ₹{(denom.value * (parseInt(counts[denom.id] || '0', 10))).toLocaleString('en-IN')}
+                                    </div>
                                 </div>
-                                <div className="col-span-3 flex items-center justify-center gap-2">
-                                    <span className="text-xl font-medium text-slate-500 dark:text-slate-400">×</span>
-                                    <input
-                                        type="text" inputMode="numeric" pattern="\d*" value={counts[denom.id] || ''}
-                                        onChange={(e) => handleCountChange(denom.id, e.target.value)}
-                                        placeholder="0"
-                                        className="w-full text-center text-xl font-bold rounded-lg p-2 bg-slate-100 dark:bg-slate-700 border-2 border-slate-300 dark:border-slate-600 focus:ring-2 focus:ring-violet-500"
-                                    />
-                                </div>
-                                <div className="col-span-5 text-right text-lg font-semibold text-violet-600 dark:text-violet-400 truncate">
-                                    ₹{(denom.value * (parseInt(counts[denom.id] || '0', 10))).toLocaleString('en-IN')}
-                                </div>
-                            </div>
-                        ))}
+                            ))}
+                        </div>
                     </div>
                 </>
             )}
@@ -329,12 +437,11 @@ const CashCounter: React.FC = () => {
                             )}
                         </div>
                         <div className="text-xs text-slate-500 dark:text-slate-400 italic h-4">
-                            {totalAmount > 0 && `${numberToWordsIn(totalAmount)} Rupees Only`}
+                            {totalAmount > 0 && `${numberToWordsIn(Math.floor(totalAmount))} Rupees Only`}
                         </div>
-                         <div className="flex justify-between items-center border-t border-slate-200 dark:border-slate-700 pt-2">
-                            <div className="flex-1 text-center"><p className="text-sm">Notes</p><p className="font-bold text-lg">{totalNotes}</p></div>
-                            <div className="flex-1 text-center"><p className="text-sm">Coins</p><p className="font-bold text-lg">{totalCoins}</p></div>
-                            <div className="flex-1 text-center"><button onClick={() => { setIsSummaryOpen(false); setShowHistory(true); }} className="text-sm text-violet-600 dark:text-violet-400 hover:underline">History ({history.length})</button></div>
+                         <div className="flex justify-around items-center border-t border-slate-200 dark:border-slate-700 pt-2">
+                            <div className="text-center"><p className="text-sm">Total Notes</p><p className="font-bold text-lg">{totalNotes}</p></div>
+                            <div className="text-center"><button onClick={() => { setIsSummaryOpen(false); setShowHistory(true); }} className="text-sm text-violet-600 dark:text-violet-400 hover:underline">View History ({history.length})</button></div>
                         </div>
                          <div className="flex justify-center gap-2 pt-2">
                                 <button onClick={handleClear} className="flex-1 px-4 py-3 bg-slate-200 dark:bg-slate-600 rounded-lg font-semibold">Clear</button>
@@ -353,7 +460,7 @@ const CashCounter: React.FC = () => {
 // =====================================================================================
 interface BillItem { id: number; name: string; qty: number; price: number; }
 
-const Billing: React.FC = () => {
+const Billing: React.FC<{ userName: string }> = ({ userName }) => {
     const [items, setItems] = useLocalStorage<BillItem[]>('billItems', [{ id: 1, name: '', qty: 1, price: 0 }]);
     const [customerName, setCustomerName] = useLocalStorage('billCustomer', '');
 
@@ -371,9 +478,12 @@ const Billing: React.FC = () => {
         const { jsPDF } = jspdf;
         const doc = new jsPDF();
         doc.text("Invoice", 105, 15, { align: 'center' });
+        doc.setFontSize(12);
         doc.text(`Customer: ${customerName || 'N/A'}`, 14, 25);
-        doc.text(`Date: ${new Date().toLocaleDateString()}`, 14, 32);
-        
+        doc.text(`Date: ${new Date().toLocaleDateString('en-IN')}`, 14, 32);
+        doc.setFontSize(10);
+        doc.text(`Generated By: ${userName}`, 196, 25, { align: 'right' });
+
         doc.autoTable({
             startY: 40,
             head: [['Item Name', 'Quantity', 'Price', 'Total']],
@@ -381,6 +491,7 @@ const Billing: React.FC = () => {
             foot: [['', '', 'Grand Total', `₹${totalBill.toFixed(2)}`]],
             theme: 'grid',
         });
+        addWatermark(doc);
         doc.save(`invoice-${Date.now()}.pdf`);
     };
 
@@ -686,8 +797,8 @@ const App: React.FC = () => {
     }, []);
 
     const TAB_DATA = {
-        counter: { title: 'Currency Counter', component: <CashCounter />, icon: <CounterIcon /> },
-        billing: { title: 'Billing', component: <Billing />, icon: <BillingIcon /> },
+        counter: { title: 'Currency Counter', component: <CashCounter userName={userName!} />, icon: <CounterIcon /> },
+        billing: { title: 'Billing', component: <Billing userName={userName!} />, icon: <BillingIcon /> },
         gst: { title: 'GST Calculator', component: <GstCalculator />, icon: <GstIcon /> },
     };
 
