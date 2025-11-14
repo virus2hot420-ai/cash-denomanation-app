@@ -1,5 +1,7 @@
 
 
+
+
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { initializeApp } from 'firebase/app';
 import {
@@ -34,7 +36,7 @@ import {
 declare var html2canvas: any;
 declare var jspdf: any;
 
-type ActiveTab = 'counter' | 'billing' | 'gst' | 'admin';
+type ActiveTab = 'counter' | 'billing' | 'admin';
 type Theme = 'light' | 'dark';
 interface BillItem { id: number; name: string; qty: number; price: number; }
 interface CashHistoryEntry {
@@ -88,13 +90,9 @@ const CURRENCY_DATA = [
     { id: 'note-20', value: 20, type: 'Note', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/India_new_20_INR%2C_Mahatma_Gandhi_New_Series%2C_2019%2C_obverse.png/320px-India_new_20_INR%2C_Mahatma_Gandhi_New_Series%2C_2019%2C_obverse.png' },
     { id: 'note-10', value: 10, type: 'Note', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/89/India_new_10_INR%2C_Mahatma_Gandhi_New_Series%2C_2018%2C_obverse.png/320px-India_new_10_INR%2C_Mahatma_Gandhi_New_Series%2C_2018%2C_obverse.png' },
     { id: 'note-5', value: 5, type: 'Note', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/India_5_INR%2C_MG_series%2C_2002%2C_obverse.png/320px-India_5_INR%2C_MG_series%2C_2002%2C_obverse.png'},
-    { id: 'coin-10', value: 10, type: 'Coin', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/India-10-Rupee-coin-2019-observe.png/240px-India-10-Rupee-coin-2019-observe.png' },
-    { id: 'coin-5', value: 5, type: 'Coin', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/India-5-Rupee-coin-2019-observe.png/240px-India-5-Rupee-coin-2019-observe.png' },
-    { id: 'coin-2', value: 2, type: 'Coin', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d1/India-2-Rupee-coin-2019-observe.png/240px-India-2-Rupee-coin-2019-observe.png' },
-    { id: 'coin-1', value: 1, type: 'Coin', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/91/India-1-Rupee-coin-2019-observe.png/240px-India-1-Rupee-coin-2019-observe.png' },
 ];
 const NOTES = CURRENCY_DATA.filter(d => d.type === 'Note').sort((a, b) => b.value - a.value);
-const COINS = CURRENCY_DATA.filter(d => d.type === 'Coin').sort((a, b) => b.value - a.value);
+
 
 // IMPORTANT: Set the email of the admin user here.
 const ADMIN_EMAIL = "admin@example.com";
@@ -161,7 +159,6 @@ const addWatermark = (doc: any) => {
 // --- UI ICONS --- (No changes to icons)
 const CounterIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 14h.01M12 11h.01M15 11h.01M9 11h.01M12 21a9 9 0 110-18 9 9 0 010 18z" /></svg>;
 const BillingIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>;
-const GstIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>;
 const AdminIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>;
 const LogoutIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>;
 const TrashIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>;
@@ -253,16 +250,23 @@ const CashCounter: React.FC<{ user: User }> = ({ user }) => {
             setCounts(prev => ({ ...prev, [id]: newCount }));
         }
     };
+
+    const handleExpectedAmountChange = (value: string) => {
+        // Prevent non-numeric characters except for one decimal point
+        if (/^[0-9]*\.?[0-9]*$/.test(value)) {
+            setExpectedAmount(value);
+        }
+    };
     
-    const { totalAmount, totalNotesAndCoins } = useMemo(() => {
+    const { totalAmount, totalNotes } = useMemo(() => {
         return CURRENCY_DATA.reduce((acc, denom) => {
             const count = parseInt(counts[denom.id] || '0', 10);
             if (count > 0) {
                 acc.totalAmount += denom.value * count;
-                acc.totalNotesAndCoins += count;
+                acc.totalNotes += count;
             }
             return acc;
-        }, { totalAmount: 0, totalNotesAndCoins: 0 });
+        }, { totalAmount: 0, totalNotes: 0 });
     }, [counts]);
 
     const difference = useMemo(() => {
@@ -271,14 +275,19 @@ const CashCounter: React.FC<{ user: User }> = ({ user }) => {
         return totalAmount - expected;
     }, [totalAmount, expectedAmount]);
 
-    const handleClear = () => { setCounts({}); setExpectedAmount(''); }
+    const handleClear = () => {
+        if (window.confirm("Are you sure you want to clear all counts? This action cannot be undone.")) {
+            setCounts({});
+            setExpectedAmount('');
+        }
+    };
     
     const handleSave = async () => {
         if (totalAmount > 0) {
             const newEntry = {
                 date: serverTimestamp(),
                 userEmail: user.isAnonymous ? 'Guest' : user.email,
-                totalAmount, totalNotes: totalNotesAndCoins, counts, expectedAmount,
+                totalAmount, totalNotes, counts, expectedAmount,
             };
             try {
                 const docRef = await addDoc(historyRef, newEntry);
@@ -296,7 +305,7 @@ const CashCounter: React.FC<{ user: User }> = ({ user }) => {
     const generateShareText = (entry: any) => {
         let text = `Cash Count Summary:\n`;
         text += `Total Amount: ₹${entry.totalAmount.toLocaleString('en-IN')}\n`;
-        text += `Total Notes/Coins: ${entry.totalNotes}\n\n`;
+        text += `Total Notes: ${entry.totalNotes}\n\n`;
         text += 'Denomination Breakdown:\n';
         CURRENCY_DATA.forEach(denom => {
             const count = parseInt(entry.counts[denom.id] || '0', 10);
@@ -309,7 +318,7 @@ const CashCounter: React.FC<{ user: User }> = ({ user }) => {
     };
 
     const handleShare = () => {
-        const textToShare = generateShareText({ totalAmount, totalNotes: totalNotesAndCoins, counts });
+        const textToShare = generateShareText({ totalAmount, totalNotes: totalNotes, counts });
         if (navigator.share) {
             navigator.share({ title: 'Cash Count Summary', text: textToShare });
         } else {
@@ -395,7 +404,7 @@ const CashCounter: React.FC<{ user: User }> = ({ user }) => {
                                             {entry.expectedAmount && parseFloat(entry.expectedAmount) > 0 && <p className={ (entry.totalAmount - parseFloat(entry.expectedAmount)) >= 0 ? 'text-green-500' : 'text-red-500'}>
                                                 Difference: ₹{(entry.totalAmount - parseFloat(entry.expectedAmount)).toLocaleString('en-IN')}
                                             </p>}
-                                            <p>Total Notes/Coins: {entry.totalNotes}</p>
+                                            <p>Total Notes: {entry.totalNotes}</p>
                                         </div>
                                         <h4 className="font-semibold mt-4 mb-2">Breakdown:</h4>
                                         <ul className="text-sm space-y-1">
@@ -417,17 +426,11 @@ const CashCounter: React.FC<{ user: User }> = ({ user }) => {
                 </div>
             ) : (
                 <>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div className="max-w-xl mx-auto">
                         <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md overflow-hidden">
                             <h2 className="text-lg font-bold p-4 bg-slate-50 dark:bg-slate-700 border-b border-slate-200 dark:border-slate-600">Notes</h2>
                             <div className="divide-y divide-slate-200 dark:divide-slate-700">
                                 {NOTES.map(denom => <DenominationRow key={denom.id} denom={denom} />)}
-                            </div>
-                        </div>
-                        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md overflow-hidden">
-                            <h2 className="text-lg font-bold p-4 bg-slate-50 dark:bg-slate-700 border-b border-slate-200 dark:border-slate-600">Coins</h2>
-                            <div className="divide-y divide-slate-200 dark:divide-slate-700">
-                                {COINS.map(denom => <DenominationRow key={denom.id} denom={denom} />)}
                             </div>
                         </div>
                     </div>
@@ -441,11 +444,11 @@ const CashCounter: React.FC<{ user: User }> = ({ user }) => {
                                         <span className="font-bold text-lg sm:text-xl text-violet-600 dark:text-violet-400">₹{totalAmount.toLocaleString('en-IN')}</span>
                                     </div>
                                     <div>
-                                        <span className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 block">Total Items</span>
-                                        <span className="font-bold text-lg sm:text-xl">{totalNotesAndCoins}</span>
+                                        <span className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 block">Total Notes</span>
+                                        <span className="font-bold text-lg sm:text-xl">{totalNotes}</span>
                                     </div>
                                     <div className="col-span-2 sm:col-span-1">
-                                        <input type="text" inputMode="numeric" value={expectedAmount} onChange={(e) => setExpectedAmount(e.target.value.replace(/[^0-9.]/g, ''))} placeholder="Expected Amount" className="w-full text-center text-sm rounded-lg p-2 bg-slate-100 dark:bg-slate-700 border-2 border-slate-300 dark:border-slate-600 focus:ring-2 focus:ring-violet-500"/>
+                                        <input type="text" inputMode="numeric" value={expectedAmount} onChange={(e) => handleExpectedAmountChange(e.target.value)} placeholder="Expected Amount" className="w-full text-center text-sm rounded-lg p-2 bg-slate-100 dark:bg-slate-700 border-2 border-slate-300 dark:border-slate-600 focus:ring-2 focus:ring-violet-500"/>
                                     </div>
                                     <div>
                                        <span className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 block">Difference</span>
@@ -476,7 +479,6 @@ const CashCounter: React.FC<{ user: User }> = ({ user }) => {
 // --- PLACEHOLDER COMPONENTS ---
 // =====================================================================================
 const Billing: React.FC = () => <div className="p-4 text-center">Billing Feature Coming Soon!</div>;
-const GstCalculator: React.FC = () => <div className="p-4 text-center">GST Calculator Coming Soon!</div>;
 const AdminPanel: React.FC<{ user: User }> = ({ user }) => <div className="p-4 text-center">Admin Panel Coming Soon!</div>;
 
 // =====================================================================================
@@ -672,7 +674,6 @@ const App: React.FC = () => {
         switch (activeTab) {
             case 'counter': return <CashCounter user={user} />;
             case 'billing': return <Billing />;
-            case 'gst': return <GstCalculator />;
             case 'admin': return isAdmin ? <AdminPanel user={user} /> : <div className="p-4 text-center text-red-500">Access Denied.</div>;
             default: return <CashCounter user={user} />;
         }
@@ -706,7 +707,6 @@ const App: React.FC = () => {
                         {/* Desktop Nav */}
                         <NavButton active={activeTab === 'counter'} onClick={() => setActiveTab('counter')}><CounterIcon /> Counter</NavButton>
                         <NavButton active={activeTab === 'billing'} onClick={() => setActiveTab('billing')}><BillingIcon /> Billing</NavButton>
-                        <NavButton active={activeTab === 'gst'} onClick={() => setActiveTab('gst')}><GstIcon /> GST Calc</NavButton>
                         {isAdmin && <NavButton active={activeTab === 'admin'} onClick={() => setActiveTab('admin')}><AdminIcon /> Admin</NavButton>}
                     </div>
                     <div className="flex items-center gap-3">
@@ -714,9 +714,9 @@ const App: React.FC = () => {
                             <UserIcon />
                             <span className="hidden sm:inline">{user.isAnonymous ? 'Guest' : (user.displayName || user.email)}</span>
                          </div>
-                        <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700"><ThemeIcon /></button>
-                        <button onClick={() => setFeedbackOpen(true)} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 hidden sm:block"><FeedbackIcon /></button>
-                        <button onClick={handleSignOut} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700"><LogoutIcon /></button>
+                        <button onClick={toggleTheme} aria-label="Toggle theme" className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700"><ThemeIcon /></button>
+                        <button onClick={() => setFeedbackOpen(true)} aria-label="Submit feedback" className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 hidden sm:block"><FeedbackIcon /></button>
+                        <button onClick={handleSignOut} aria-label="Sign out" className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700"><LogoutIcon /></button>
                     </div>
                 </div>
             </header>
@@ -726,7 +726,6 @@ const App: React.FC = () => {
                 <nav className="p-4 space-y-2">
                     <NavButton isSidebar active={activeTab === 'counter'} onClick={() => {setActiveTab('counter'); setSidebarOpen(false);}}><CounterIcon /> Currency Counter</NavButton>
                     <NavButton isSidebar active={activeTab === 'billing'} onClick={() => {setActiveTab('billing'); setSidebarOpen(false);}}><BillingIcon /> Billing</NavButton>
-                    <NavButton isSidebar active={activeTab === 'gst'} onClick={() => {setActiveTab('gst'); setSidebarOpen(false);}}><GstIcon /> GST Calculator</NavButton>
                     {isAdmin && <NavButton isSidebar active={activeTab === 'admin'} onClick={() => {setActiveTab('admin'); setSidebarOpen(false);}}><AdminIcon /> Admin Panel</NavButton>}
                     <div className="border-t border-slate-200 dark:border-slate-700 my-4"></div>
                     <button onClick={() => {setFeedbackOpen(true); setSidebarOpen(false);}} className="w-full flex items-center gap-3 px-4 py-3 text-left text-sm rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700">
