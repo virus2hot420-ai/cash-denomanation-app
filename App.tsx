@@ -1,10 +1,16 @@
-
-
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 
 // --- TYPE DEFINITIONS & CONSTANTS ---
 declare var html2canvas: any;
 declare var jspdf: any;
+
+// For Google Identity Services
+declare global {
+    interface Window {
+        google: any;
+    }
+}
+
 
 type ActiveTab = 'counter' | 'billing' | 'gst';
 type Theme = 'light' | 'dark';
@@ -611,11 +617,23 @@ const GstCalculator: React.FC = () => {
 // =====================================================================================
 // --- LOGIN SCREEN COMPONENT ---
 // =====================================================================================
+// Helper to decode JWT token from Google Sign-In
+const jwt_decode = (token: string) => {
+    try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        return JSON.parse(jsonPayload);
+    } catch (e) {
+        console.error("Error decoding JWT", e);
+        return null;
+    }
+};
+
 const LoginScreen: React.FC<{ onLogin: (name: string) => void }> = ({ onLogin }) => {
     const [name, setName] = useState('');
-    const [phone, setPhone] = useState('');
-    const [otp, setOtp] = useState('');
-    const [otpSent, setOtpSent] = useState(false);
     const [error, setError] = useState('');
 
     const handleNameSubmit = (e: React.FormEvent) => {
@@ -624,32 +642,35 @@ const LoginScreen: React.FC<{ onLogin: (name: string) => void }> = ({ onLogin })
             onLogin(name.trim());
         }
     };
-
-    const handleGoogleLogin = () => {
-        // This is a simulation. In a real app, you would use the Google Sign-In library.
-        alert("Simulating Google Login...");
-        onLogin("Google User");
-    };
-
-    const handleSendOtp = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (phone.length >= 10 && /^\d+$/.test(phone)) {
-            setOtpSent(true);
-            setError('');
-            alert(`OTP sent to ${phone}. (Hint: The OTP is 123456)`);
+    
+    // Google Sign-In Callback
+    const handleGoogleSignInCallback = (response: any) => {
+        // NOTE: In a real-world app, you should send the credential to your backend for verification.
+        const userObject = jwt_decode(response.credential);
+        if (userObject && userObject.name) {
+            onLogin(userObject.name);
         } else {
-            setError('Please enter a valid 10-digit phone number.');
+             setError("Could not retrieve name from Google account.");
         }
     };
 
-    const handleVerifyOtp = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (otp === '123456') {
-            onLogin(`User ${phone.slice(-4)}`);
+    useEffect(() => {
+        // Initialize Google Sign-In
+        if (window.google) {
+            window.google.accounts.id.initialize({
+                // IMPORTANT: Replace with your actual Google Client ID
+                client_id: "307413483347-jviu5aqulsnob10ppof817pn309eep8o.apps.googleusercontent.com",
+                callback: handleGoogleSignInCallback
+            });
+
+            window.google.accounts.id.renderButton(
+                document.getElementById("googleSignInButton"),
+                { theme: "outline", size: "large", type: 'standard', text: 'signin_with', shape: 'rectangular' } 
+            );
         } else {
-            setError('Invalid OTP. Please try again.');
+            console.error("Google Identity Services script not loaded.");
         }
-    };
+    }, []);
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-slate-100 dark:bg-gray-900 p-4">
@@ -678,43 +699,10 @@ const LoginScreen: React.FC<{ onLogin: (name: string) => void }> = ({ onLogin })
                     <div className="flex-grow border-t border-slate-300 dark:border-slate-600"></div>
                 </div>
                 
-                {/* --- Social & Phone Logins --- */}
-                <div className="space-y-4">
-                     {/* Google Login */}
-                     <button onClick={handleGoogleLogin} className="w-full flex items-center justify-center gap-3 py-3 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg font-semibold hover:bg-slate-50 dark:hover:bg-slate-600">
-                        <GoogleIcon />
-                        Sign in with Google
-                    </button>
-                    
-                     {/* Phone Login */}
-                    <form onSubmit={otpSent ? handleVerifyOtp : handleSendOtp}>
-                        <div className="space-y-4">
-                            <input
-                                type="tel"
-                                value={phone}
-                                onChange={(e) => setPhone(e.target.value)}
-                                placeholder="Phone Number"
-                                className="w-full px-4 py-3 rounded-lg border-2 border-slate-300 dark:bg-slate-700 dark:border-slate-600 focus:ring-2 focus:ring-violet-500 focus:outline-none"
-                                disabled={otpSent}
-                            />
-                            {otpSent && (
-                                <input
-                                    type="text"
-                                    inputMode="numeric"
-                                    pattern="\d*"
-                                    value={otp}
-                                    onChange={(e) => setOtp(e.target.value)}
-                                    placeholder="Enter OTP"
-                                    className="w-full px-4 py-3 rounded-lg border-2 border-slate-300 dark:bg-slate-700 dark:border-slate-600 focus:ring-2 focus:ring-violet-500 focus:outline-none"
-                                    autoFocus
-                                />
-                            )}
-                            {error && <p className="text-red-500 text-sm text-center">{error}</p>}
-                            <button type="submit" className="w-full py-3 bg-slate-700 text-white font-bold rounded-lg hover:bg-slate-800 dark:bg-slate-600 dark:hover:bg-slate-500">
-                                {otpSent ? 'Verify & Login' : 'Send OTP'}
-                            </button>
-                        </div>
-                    </form>
+                {/* --- Google Login --- */}
+                <div className="space-y-2">
+                     <div id="googleSignInButton" className="flex justify-center"></div>
+                     {error && <p className="text-red-500 text-sm text-center pt-2">{error}</p>}
                 </div>
             </div>
         </div>
@@ -811,7 +799,10 @@ const App: React.FC = () => {
     }
 
     const handleLogout = () => {
-        if(window.confirm("Are you sure you want to logout?")) {
+        if(window.confirm("Are you sure you want to logout? All saved data will be cleared.")) {
+            // Clear all application data from local storage for a clean session
+            window.localStorage.clear();
+            // Set user name to null to trigger rerender to the login screen
             setUserName(null);
         }
     };
