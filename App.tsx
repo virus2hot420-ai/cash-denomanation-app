@@ -8,7 +8,6 @@ declare var jspdf: any;
 type ActiveTab = 'counter' | 'billing' | 'gst';
 
 const CURRENCY_DATA = [
-    { id: 'note-2000', value: 2000, isCoin: false, type: 'Note', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/India_new_2000_INR%2C_obverse.jpg/640px-India_new_2000_INR%2C_obverse.jpg' },
     { id: 'note-500', value: 500, isCoin: false, type: 'Note', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/25/India_new_500_INR%2C_obverse.jpg/640px-India_new_500_INR%2C_obverse.jpg' },
     { id: 'note-200', value: 200, isCoin: false, type: 'Note', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/India_new_200_INR%2C_obverse.jpg/640px-India_new_200_INR%2C_obverse.jpg' },
     { id: 'note-100', value: 100, isCoin: false, type: 'Note', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/India_new_100_INR%2C_obverse.jpg/640px-India_new_100_INR%2C_obverse.jpg' },
@@ -16,10 +15,6 @@ const CURRENCY_DATA = [
     { id: 'note-20', value: 20, isCoin: false, type: 'Note', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d5/20_INR_note_Mahatma_Gandhi_New_Series.jpg/640px-20_INR_note_Mahatma_Gandhi_New_Series.jpg' },
     { id: 'note-10', value: 10, isCoin: false, type: 'Note', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/India_new_10_INR%2C_obverse.jpg/640px-India_new_10_INR%2C_obverse.jpg' },
     { id: 'note-5', value: 5, isCoin: false, type: 'Note', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/85/5_INR_note_Mahatma_Gandhi_New_Series.jpg/640px-5_INR_note_Mahatma_Gandhi_New_Series.jpg'},
-    { id: 'coin-10', value: 10, isCoin: true, type: 'Coin', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/Indian_10_Rupee_Coin.png/480px-Indian_10_Rupee_Coin.png'},
-    { id: 'coin-5', value: 5, isCoin: true, type: 'Coin', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/Indian_5_Rupee_Coin.png/480px-Indian_5_Rupee_Coin.png' },
-    { id: 'coin-2', value: 2, isCoin: true, type: 'Coin', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c7/Indian_2_Rupee_Coin.png/480px-Indian_2_Rupee_Coin.png' },
-    { id: 'coin-1', value: 1, isCoin: true, type: 'Coin', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d1/Indian_1_Rupee_Coin.png/480px-Indian_1_Rupee_Coin.png' },
 ];
 
 // --- CUSTOM HOOK FOR LOCAL STORAGE ---
