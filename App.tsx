@@ -5,7 +5,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 declare var html2canvas: any;
 declare var jspdf: any;
 
-type ActiveTab = 'counter' | 'billing' | 'gst' | 'diary';
+type ActiveTab = 'counter' | 'billing' | 'gst';
 
 const CURRENCY_DATA = [
     { id: 'note-2000', value: 2000, isCoin: false, type: 'Note', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/India_new_2000_INR%2C_obverse.jpg/640px-India_new_2000_INR%2C_obverse.jpg' },
@@ -77,7 +77,6 @@ const numberToWordsIn = (num: number): string => {
 const CounterIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 14h.01M12 11h.01M15 11h.01M9 11h.01M12 21a9 9 0 110-18 9 9 0 010 18z" /></svg>;
 const BillingIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>;
 const GstIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>;
-const DiaryIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v11.494m-9-11.494v11.494H3v-11.494A2.25 2.25 0 015.25 4h13.5A2.25 2.25 0 0121 6.253v11.494h-1.25V6.253z" /></svg>;
 const LogoutIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>;
 const TrashIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>;
 
@@ -430,24 +429,6 @@ const GstCalculator: React.FC = () => {
 };
 
 // =====================================================================================
-// --- DIARY COMPONENT ---
-// =====================================================================================
-const Diary: React.FC = () => {
-    const [notes, setNotes] = useLocalStorage('diaryNotes', '');
-
-    return (
-        <div className="flex-grow container mx-auto p-2 sm:p-4 pb-16">
-            <textarea
-                value={notes}
-                onChange={e => setNotes(e.target.value)}
-                placeholder="Write your notes here..."
-                className="w-full h-[70vh] p-3 rounded-lg border dark:bg-slate-800 dark:border-slate-600 focus:ring-2 focus:ring-indigo-500"
-            />
-        </div>
-    );
-};
-
-// =====================================================================================
 // --- LOGIN SCREEN COMPONENT ---
 // =====================================================================================
 const LoginScreen: React.FC<{ onLogin: (name: string) => void }> = ({ onLogin }) => {
@@ -494,7 +475,6 @@ const App: React.FC = () => {
         counter: { title: 'Currency Counter', component: <CashCounter />, icon: <CounterIcon /> },
         billing: { title: 'Billing', component: <Billing />, icon: <BillingIcon /> },
         gst: { title: 'GST Calculator', component: <GstCalculator />, icon: <GstIcon /> },
-        diary: { title: 'Diary', component: <Diary />, icon: <DiaryIcon /> },
     };
 
     if (!userName) {
